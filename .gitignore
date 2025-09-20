@@ -1,14 +1,88 @@
-# Compiler files
-cache/
-out/
-
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
-
-# Docs
-docs/
-
-# Dotenv file
+# Environment variables and secrets
 .env
+.env.local
+.env.production
+.env.staging
+*.key
+*.pem
+
+# Private keys and keystores
+private_keys/
+keystores/
+wallets/
+secrets/
+
+# Foundry build artifacts
+out/
+cache/
+broadcast/
+
+# Deployment logs and sensitive data
+deployments/
+deployment_logs/
+*.log
+deploy_*.log
+verification_*.json
+standard-input.json
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Coverage reports
+coverage/
+lcov.info
+*.lcov
+
+# Gas reports
+gas_report.txt
+gasreport.txt
+
+# Test artifacts
+test_results/
+artifacts/
+
+# Documentation build
+docs/build/
+site/
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Local configuration
+config.local.json
+foundry.local.toml
+
+# Verification files
+verification-*.json
+etherscan-*.json
+
+# API keys and sensitive configs
+api_keys.txt
+config.secret.json
