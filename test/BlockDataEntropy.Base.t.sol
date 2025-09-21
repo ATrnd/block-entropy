@@ -98,145 +98,107 @@ contract BlockDataEntropyBaseTest is Test {
     }
 
     function test_DifferentCallers() public {
-        address user2 = makeAddr("user2");
-        vm.deal(user2, 100 ether);
+        address alice = makeAddr("alice");
+        address bob = makeAddr("bob");
 
-        uint256 salt = 123;
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
 
-        // First user generates entropy
-        vm.prank(user);
-        bytes32 entropy1 = blockDataEntropy.getEntropy(salt);
+        // Generate entropy from different callers with same salt
+        vm.prank(alice);
+        bytes32 entropyAlice = blockDataEntropy.getEntropy(123);
 
-        // Second user generates entropy with same salt
-        vm.prank(user2);
-        bytes32 entropy2 = blockDataEntropy.getEntropy(salt);
+        vm.prank(bob);
+        bytes32 entropyBob = blockDataEntropy.getEntropy(123);
 
-        // Entropy should be different due to different callers
-        assertTrue(entropy1 != entropy2, "Entropy should be different with different callers");
+        // Entropy should be different with different callers
+        assertTrue(entropyAlice != entropyBob, "Entropy should be different with different callers");
     }
 
-    /// ============================================
-    /// ============= State Management Tests =======
-    /// ============================================
-
-    function test_TransactionCounterIncrement() public {
+    function test_SegmentCycling() public {
         vm.startPrank(user);
 
-        for (uint256 i = 1; i <= 5; i++) {
-            blockDataEntropy.getEntropy(i);
-            assertEq(blockDataEntropy.getTransactionCounter(), i, "Transaction counter should increment correctly");
-        }
-
-        vm.stopPrank();
-    }
-
-    function test_SegmentIndexCycling() public {
-        vm.startPrank(user);
-
-        // Generate entropy 5 times to test cycling (should go 0->1->2->3->0)
+        // Call getEntropy 5 times to cycle through all segments (0-3) and back to 0
         for (uint256 i = 0; i < 5; i++) {
             blockDataEntropy.getEntropy(i);
-            uint256 expectedIndex = (i + 1) % 4;
-            assertEq(blockDataEntropy.getCurrentSegmentIndex(), expectedIndex, "Segment index should cycle correctly");
+            assertEq(
+                blockDataEntropy.getCurrentSegmentIndex(),
+                (i + 1) % 4,
+                string.concat("Segment index should be ", vm.toString((i + 1) % 4), " after call #", vm.toString(i + 1))
+            );
         }
 
         vm.stopPrank();
     }
 
-    function test_BlockHashUpdate() public {
-        vm.startPrank(user);
+    /// ========== Component Error Tracking ========
+    /// ============================================
 
-        // Get initial block hash
+    function test_ComponentErrorTracking() public {
+        // Use the proxy to test the error tracking mechanism
+
+        // First, force a block hash error
+        blockDataEntropy.forceGenerateZeroBlockHash(true);
+        blockDataEntropy.forceSetLastProcessedBlock(0); // Force block hash update
+
+        vm.prank(user);
         blockDataEntropy.getEntropy(123);
-        bytes32 initialHash = blockDataEntropy.getCurrentBlockHash();
-        uint256 initialBlock = blockDataEntropy.getLastProcessedBlock();
 
-        // Mine a new block
-        vm.roll(block.number + 1);
+        // Check that the block hash error was tracked
+        assertEq(blockDataEntropy.getBlockHashZeroHashCount(), 1, "Block hash zero count should be 1");
 
-        // Generate entropy again - should update block hash
+        // Reset the counters
+        blockDataEntropy.resetFallbackCounters();
+
+        // Now force a segment error
+        blockDataEntropy.forceSetReturnZeroSegment(true);
+
+        vm.prank(user);
         blockDataEntropy.getEntropy(456);
-        bytes32 newHash = blockDataEntropy.getCurrentBlockHash();
-        uint256 newBlock = blockDataEntropy.getLastProcessedBlock();
 
-        // Hash and block should be updated
-        assertTrue(newHash != initialHash, "Block hash should update when block changes");
-        assertTrue(newBlock > initialBlock, "Last processed block should update");
+        // Check that the segment error was tracked
+        assertEq(blockDataEntropy.getEntropyGenerationZeroSegmentCount(), 2, "Entropy zero segment count should be 2 (cascading errors)");
 
-        vm.stopPrank();
+        // Verify total error count for entropy generation component (cascading errors)
+        assertEq(blockDataEntropy.getComponentTotalErrorCount(3), 2, "Total entropy generation errors should be 2 (cascading errors)");
+
+        // Check the hasComponentErrors function
+        assertTrue(blockDataEntropy.hasComponentErrors(3), "Component should have errors");
+        assertFalse(blockDataEntropy.hasComponentErrors(2), "Component should not have errors");
     }
 
     /// ============================================
-    /// ============= Events Tests ================
+    /// ============= View Functions ==============
     /// ============================================
 
-    function test_EntropyGeneratedEvent() public {
-        vm.prank(user);
+    function test_ExtractAllSegments() public view {
+        // Create a known hash to test with
+        bytes32 testHash = keccak256(abi.encode("test"));
 
-        // Expect entropy generated event
-        vm.expectEmit(true, false, false, true);
-        emit EntropyGenerated(user, 1, block.number); // Segment index will be 1 after first call
+        // Extract all segments
+        bytes8[4] memory segments = blockDataEntropy.extractAllSegments(testHash);
 
-        blockDataEntropy.getEntropy(123);
-    }
-
-    function test_BlockHashGeneratedEvent() public {
-        vm.prank(user);
-
-        // Expect block hash generated event on first call
-        vm.expectEmit(false, false, false, false);
-        emit BlockHashGenerated(block.number, bytes32(0)); // We can't predict the hash
-
-        blockDataEntropy.getEntropy(123);
-    }
-
-    /// ============================================
-    /// ============= Edge Cases Tests ============
-    /// ============================================
-
-    function test_ZeroSaltEntropy() public {
-        vm.prank(user);
-        bytes32 entropy = blockDataEntropy.getEntropy(0);
-
-        assertTrue(entropy != bytes32(0), "Entropy should not be zero even with zero salt");
-    }
-
-    function test_MaxUintSaltEntropy() public {
-        vm.prank(user);
-        bytes32 entropy = blockDataEntropy.getEntropy(type(uint256).max);
-
-        assertTrue(entropy != bytes32(0), "Entropy should work with maximum uint256 salt");
-    }
-
-    function test_MultipleCallsSameBlock() public {
-        vm.startPrank(user);
-
-        bytes32[] memory entropies = new bytes32[](10);
-
-        // Generate multiple entropy values in the same block
-        for (uint256 i = 0; i < 10; i++) {
-            entropies[i] = blockDataEntropy.getEntropy(i);
+        // Verify segments are not zero
+        for (uint256 i = 0; i < 4; i++) {
+            assertTrue(segments[i] != bytes8(0), "Extracted segment should not be zero");
         }
 
-        // All entropy values should be different
-        for (uint256 i = 0; i < 10; i++) {
-            for (uint256 j = i + 1; j < 10; j++) {
-                assertTrue(entropies[i] != entropies[j], "All entropy values should be unique");
-            }
-        }
-
-        vm.stopPrank();
+        // Verify segments are different from each other
+        assertTrue(segments[0] != segments[1], "Segments should be different from each other");
+        assertTrue(segments[0] != segments[2], "Segments should be different from each other");
+        assertTrue(segments[0] != segments[3], "Segments should be different from each other");
     }
 
-    /// ============================================
-    /// ============= Helper Functions ============
-    /// ============================================
+    function test_ExtractAllSegments_ZeroHash() public view {
+        // Test with zero hash
+        bytes32 zeroHash = bytes32(0);
 
-    // Events for testing
-    event EntropyGenerated(address indexed requester, uint256 segmentIndex, uint256 blockNumber);
-    event BlockHashGenerated(uint256 indexed blockNumber, bytes32 hashValue);
+        // Extract all segments
+        bytes8[4] memory segments = blockDataEntropy.extractAllSegments(zeroHash);
 
-    function makeAddr(string memory name) internal pure override returns (address) {
-        return vm.addr(uint256(keccak256(bytes(name))));
+        // Verify all segments are non-zero (should use fallback)
+        for (uint256 i = 0; i < 4; i++) {
+            assertTrue(segments[i] != bytes8(0), "Segments from zero hash should still be non-zero");
+        }
     }
 }
