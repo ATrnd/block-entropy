@@ -119,15 +119,23 @@ getEntropy() → ALWAYS returns bytes32
 #### Component-Specific Error Queries
 - `getBlockHashZeroHashCount() external view returns (uint256)` - Zero hash errors in block hash processing
 - `getBlockHashZeroBlockhashFallbackCount() external view returns (uint256)` - Zero blockhash fallback errors
-- `getSegmentExtractionZeroSegmentCount() external view returns (uint256)` - Zero segment errors in segment extraction
 - `getSegmentExtractionOutOfBoundsCount() external view returns (uint256)` - Out of bounds errors in segment extraction
 - `getSegmentExtractionShiftOverflowCount() external view returns (uint256)` - Shift overflow errors in segment extraction
+- `getEntropyGenerationZeroHashCount() external view returns (uint256)` - Zero hash errors in entropy generation
 - `getEntropyGenerationZeroSegmentCount() external view returns (uint256)` - Zero segment errors in entropy generation
 
 #### Ownership (Inherited from OpenZeppelin)
 - `owner() external view returns (address)` - Get current contract owner
 - `transferOwnership(address newOwner) external` - Transfer ownership to new address
 - `renounceOwnership() external` - Renounce ownership (sets owner to zero address)
+
+#### State Inspection (Test-Only via Proxy)
+**Note**: State inspection functions are moved to `BlockDataEntropyTestProxy` for production security
+- `getLastProcessedBlock() external view returns (uint256)` - Get last processed block number *(Test proxy only)*
+- `getCurrentSegmentIndex() external view returns (uint256)` - Get current segment index *(Test proxy only)*
+- `getTransactionCounter() external view returns (uint256)` - Get transaction counter *(Test proxy only)*
+- `getCurrentBlockHash() external view returns (bytes32)` - Get current block hash *(Test proxy only)*
+- `extractAllSegments(bytes32 blockHash) external view returns (bytes8[4] memory)` - Extract all segments *(Test proxy only)*
 
 ### Internal Functions
 
@@ -146,28 +154,24 @@ getEntropy() → ALWAYS returns bytes32
 ### Library Functions
 
 #### BlockProcessingLibrary
-- `extractSegmentWithShift(bytes32 blockHash, uint256 segmentIndex) internal pure returns (bytes8)` - Core bit-shifting segment extraction
-- `generateFallbackSegment(uint256 segmentIndex) internal view returns (bytes8)` - Generate deterministic fallback segment
-- `generateFallbackSegments() internal view returns (bytes8[4] memory)` - Generate all fallback segments for zero hash
-- `isSegmentIndexValid(uint256 segmentIndex) internal pure returns (bool)` - Validate segment index (0-3)
-- `isZeroSegment(bytes8 segment) internal pure returns (bool)` - Check if extracted segment is zero
-- `isZeroHash(bytes32 hash) internal pure returns (bool)` - Check if block hash is zero
+- `generateBlockHash() internal view returns (bytes32)` - Generates hash from comprehensive block data combining 8 properties
+- `extractSegmentWithShift(bytes32 blockHash, uint256 shift) internal pure returns (bytes8)` - Core bit-shifting segment extraction using right-shift and bitmask
+- `extractFirstSegment(bytes32 blockHash) internal pure returns (bytes8)` - Extracts first 64-bit segment as emergency fallback
 
 #### BlockTimingLibrary
-- `cycleSegmentIndex(uint256 currentIndex) internal pure returns (uint256)` - Cycle through segment indices
-- `incrementTransactionCounter(uint256 currentCounter) internal pure returns (uint256)` - Increment transaction counter
-- `shouldUpdateBlockHash(uint256 currentBlock, uint256 lastProcessedBlock) internal pure returns (bool)` - Check if block hash needs updating
+- `hasBlockChanged(uint256 currentBlock, uint256 lastProcessedBlock) internal pure returns (bool)` - Checks if current block has changed since last processing
+- `getBlockhash(uint256 blockNumber) internal view returns (bytes32)` - Gets the blockhash for a given block number
 
 #### BlockValidationLibrary
 - `isZeroHash(bytes32 hash) internal pure returns (bool)` - Check if block hash is zero
-- `isZeroValue(uint256 value) internal pure returns (bool)` - Check if uint256 value is zero
-- `isShiftOverflow(uint256 shift) internal pure returns (bool)` - Check if bit shift exceeds 256 bits
-- `shouldHandleExtractionError(bool success) internal pure returns (bool)` - Determine if extraction error needs handling
+- `isZeroSegment(bytes8 segment) internal pure returns (bool)` - Check if segment is zero
 
 #### BlockFallbackLibrary
-- `getComponentName(uint8 componentId) internal pure returns (string memory)` - Get component name from ID
-- `incrementComponentErrorCount(uint256 currentCount) internal pure returns (uint256)` - Safely increment error count
-- `generateEmergencyEntropy(uint256 salt, uint256 txCounter, uint256 zeroHashCount, uint256 zeroSegmentCount) internal view returns (bytes32)` - Generate emergency entropy with error counts
+- `generateEmergencyEntropy(uint256 salt, uint256 txCounter, uint256 zeroHashCount, uint256 zeroSegmentCount) internal view returns (bytes32)` - Generate emergency entropy when normal flow fails
+- `generateFallbackBlockHash() internal view returns (bytes32)` - Generate fallback block hash using minimal entropy sources
+- `generateFallbackSegment(uint256 segmentIndex) internal view returns (bytes8)` - Generate fallback segment when extraction fails
+- `getComponentName(uint8 componentId) internal pure returns (string memory)` - Convert component ID to string name
+- `incrementComponentErrorCount(uint256 currentCount) internal pure returns (uint256)` - Increment error counter for component
 
 ## Deployments
 
