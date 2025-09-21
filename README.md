@@ -1,6 +1,6 @@
 # BlockEntropy
 
-![Banner](https://github.com/ATrnd/block-entropy-engine/blob/main/img/block-entropy-banner.jpg?raw=true)
+![Banner](https://github.com/ATrnd/block-entropy/blob/main/img/block-entropy-banner.jpg?raw=true)
 
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.28-363636?style=flat&logo=solidity)
 ![Foundry](https://img.shields.io/badge/Foundry-Latest-000000?style=flat)
