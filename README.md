@@ -192,7 +192,7 @@ getEntropy() → ALWAYS returns bytes32
 
 #### Clone the Repository
 ```bash
-git clone https://github.com/Fragment-Protocol/block-entropy.git
+git clone git@github.com:ATrnd/block-entropy.git
 cd block-entropy
 ```
 
