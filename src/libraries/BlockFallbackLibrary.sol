@@ -10,7 +10,6 @@ import {BlockEntropyConstants} from "../constants/BlockEntropyConstants.sol";
  * @author ATrnd
  */
 library BlockFallbackLibrary {
-
     /*//////////////////////////////////////////////////////////////
                          FALLBACK GENERATION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -22,42 +21,42 @@ library BlockFallbackLibrary {
     /// @param zeroHashCount Error count for zero hash errors
     /// @param zeroSegmentCount Error count for zero segment errors
     /// @return Emergency entropy value
-    function generateEmergencyEntropy(
-        uint256 salt,
-        uint256 txCounter,
-        uint256 zeroHashCount,
-        uint256 zeroSegmentCount
-    ) internal view returns (bytes32) {
+    function generateEmergencyEntropy(uint256 salt, uint256 txCounter, uint256 zeroHashCount, uint256 zeroSegmentCount)
+        internal
+        view
+        returns (bytes32)
+    {
         // Use a different entropy generation approach as fallback
-        return keccak256(abi.encode(
-            // Use current block data
-            block.timestamp,
-            block.number,
-            block.prevrandao,
-
-            // Include transaction context
-            msg.sender,
-            salt,
-
-            // Add uniqueness factors
-            txCounter,
-            address(this),
-
-            // Include most relevant fallback counters directly
-            zeroHashCount,
-            zeroSegmentCount
-        ));
+        return keccak256(
+            abi.encode(
+                // Use current block data
+                block.timestamp,
+                block.number,
+                block.prevrandao,
+                // Include transaction context
+                msg.sender,
+                salt,
+                // Add uniqueness factors
+                txCounter,
+                address(this),
+                // Include most relevant fallback counters directly
+                zeroHashCount,
+                zeroSegmentCount
+            )
+        );
     }
 
     /// @notice Generates a fallback block hash when all else fails
     /// @dev Uses minimal but always-available entropy sources - extracted from _generateFallbackBlockHash
     /// @return A non-zero hash derived from available data
     function generateFallbackBlockHash() internal view returns (bytes32) {
-        return keccak256(abi.encode(
-            block.timestamp,
-            block.number,
-            BlockEntropyConstants.ZERO_UINT // Using extracted constant instead of s_transactionCounter
-        ));
+        return keccak256(
+            abi.encode(
+                block.timestamp,
+                block.number,
+                BlockEntropyConstants.ZERO_UINT // Using extracted constant instead of s_transactionCounter
+            )
+        );
     }
 
     /// @notice Generates a fallback segment when extraction fails
@@ -77,10 +76,18 @@ library BlockFallbackLibrary {
     /// @param componentId The component identifier
     /// @return The string name of the component
     function getComponentName(uint8 componentId) internal pure returns (string memory) {
-        if (componentId == BlockEntropyConstants.COMPONENT_BLOCK_HASH) return BlockEntropyConstants.COMPONENT_NAME_BLOCK_HASH;
-        if (componentId == BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION) return BlockEntropyConstants.COMPONENT_NAME_SEGMENT_EXTRACTION;
-        if (componentId == BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION) return BlockEntropyConstants.COMPONENT_NAME_ENTROPY_GENERATION;
-        if (componentId == BlockEntropyConstants.COMPONENT_ACCESS_CONTROL) return BlockEntropyConstants.COMPONENT_NAME_ACCESS_CONTROL;
+        if (componentId == BlockEntropyConstants.COMPONENT_BLOCK_HASH) {
+            return BlockEntropyConstants.COMPONENT_NAME_BLOCK_HASH;
+        }
+        if (componentId == BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION) {
+            return BlockEntropyConstants.COMPONENT_NAME_SEGMENT_EXTRACTION;
+        }
+        if (componentId == BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION) {
+            return BlockEntropyConstants.COMPONENT_NAME_ENTROPY_GENERATION;
+        }
+        if (componentId == BlockEntropyConstants.COMPONENT_ACCESS_CONTROL) {
+            return BlockEntropyConstants.COMPONENT_NAME_ACCESS_CONTROL;
+        }
         return BlockEntropyConstants.COMPONENT_NAME_UNKNOWN;
     }
 

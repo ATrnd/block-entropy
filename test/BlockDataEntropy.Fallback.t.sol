@@ -86,12 +86,7 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // Verify fallback event was emitted
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        verifyFallbackEvent(
-            entries,
-            COMPONENT_ENTROPY_GENERATION,
-            FUNC_GET_ENTROPY,
-            ERROR_ZERO_BLOCK_HASH
-        );
+        verifyFallbackEvent(entries, COMPONENT_ENTROPY_GENERATION, FUNC_GET_ENTROPY, ERROR_ZERO_BLOCK_HASH);
     }
 
     /// @notice Test zero segment fallback path
@@ -123,12 +118,7 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // Verify event emission using our helper
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        verifyFallbackEvent(
-            entries,
-            COMPONENT_ENTROPY_GENERATION,
-            FUNC_GET_ENTROPY,
-            ERROR_ZERO_SEGMENT
-        );
+        verifyFallbackEvent(entries, COMPONENT_ENTROPY_GENERATION, FUNC_GET_ENTROPY, ERROR_ZERO_SEGMENT);
     }
 
     /// @notice Test segment index out of bounds handling
@@ -165,10 +155,7 @@ contract BlockDataEntropyFallbackTest is Test {
         // Verify event emission
         Vm.Log[] memory entries = vm.getRecordedLogs();
         verifyFallbackEvent(
-            entries,
-            COMPONENT_SEGMENT_EXTRACTION,
-            FUNC_EXTRACT_SEGMENT,
-            ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS
+            entries, COMPONENT_SEGMENT_EXTRACTION, FUNC_EXTRACT_SEGMENT, ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS
         );
     }
 
@@ -200,12 +187,7 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // Verify event emission using our helper
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        verifyFallbackEvent(
-            entries,
-            COMPONENT_SEGMENT_EXTRACTION,
-            FUNC_EXTRACT_SEGMENT,
-            ERROR_SHIFT_OVERFLOW
-        );
+        verifyFallbackEvent(entries, COMPONENT_SEGMENT_EXTRACTION, FUNC_EXTRACT_SEGMENT, ERROR_SHIFT_OVERFLOW);
     }
 
     /// @notice Test the complex case of zero block hash + zero blockhash fallback
@@ -239,8 +221,8 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // Component-specific error counters should be incremented
         assertTrue(
-            proxy.getBlockHashZeroHashCount() > initialZeroHashCount ||
-            proxy.getBlockHashZeroBlockhashFallbackCount() > initialZeroBlockhashCount,
+            proxy.getBlockHashZeroHashCount() > initialZeroHashCount
+                || proxy.getBlockHashZeroBlockhashFallbackCount() > initialZeroBlockhashCount,
             "At least one component-specific error counter should increment"
         );
 
@@ -250,14 +232,11 @@ contract BlockDataEntropyFallbackTest is Test {
         // This test is more complex as we expect multiple events
         // We'll check that at least one event exists with the expected pattern
         bool foundUpdateBlockHashEvent = false;
-        bytes32 expectedEventSignature = keccak256(
-            "SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)"
-        );
+        bytes32 expectedEventSignature = keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)");
         bytes32 updateBlockHashFunction = keccak256(bytes(FUNC_UPDATE_BLOCK_HASH));
 
-        for (uint i = 0; i < entries.length; i++) {
-            if (entries[i].topics[0] == expectedEventSignature &&
-                entries[i].topics[2] == updateBlockHashFunction) {
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == expectedEventSignature && entries[i].topics[2] == updateBlockHashFunction) {
                 foundUpdateBlockHashEvent = true;
                 break;
             }
@@ -283,12 +262,10 @@ contract BlockDataEntropyFallbackTest is Test {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         // Count fallback events
-        uint fallbackEventCount = 0;
-        bytes32 expectedEventSignature = keccak256(
-            "SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)"
-        );
+        uint256 fallbackEventCount = 0;
+        bytes32 expectedEventSignature = keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)");
 
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == expectedEventSignature) {
                 fallbackEventCount++;
             }
@@ -371,9 +348,19 @@ contract BlockDataEntropyFallbackTest is Test {
         proxy.resetState();
 
         // Verify initial state
-        assertEq(proxy.getComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH), 0, "Initial count should be 0");
-        assertEq(proxy.getComponentErrorCount(COMPONENT_SEGMENT_EXTRACTION, ERROR_SHIFT_OVERFLOW), 0, "Initial count should be 0");
-        assertEq(proxy.getComponentErrorCount(COMPONENT_ENTROPY_GENERATION, ERROR_ZERO_SEGMENT), 0, "Initial count should be 0");
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH), 0, "Initial count should be 0"
+        );
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_SEGMENT_EXTRACTION, ERROR_SHIFT_OVERFLOW),
+            0,
+            "Initial count should be 0"
+        );
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_ENTROPY_GENERATION, ERROR_ZERO_SEGMENT),
+            0,
+            "Initial count should be 0"
+        );
 
         // Force specific component error increments
         proxy.forceIncrementComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH);
@@ -383,26 +370,54 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // Verify counts
         assertEq(proxy.getComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH), 2, "Count should be 2");
-        assertEq(proxy.getComponentErrorCount(COMPONENT_SEGMENT_EXTRACTION, ERROR_SHIFT_OVERFLOW), 1, "Count should be 1");
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_SEGMENT_EXTRACTION, ERROR_SHIFT_OVERFLOW), 1, "Count should be 1"
+        );
         assertEq(proxy.getComponentErrorCount(COMPONENT_ENTROPY_GENERATION, ERROR_ZERO_SEGMENT), 1, "Count should be 1");
 
         // Verify total component errors
         assertEq(proxy.getComponentTotalErrorCount(COMPONENT_BLOCK_HASH), 2, "Total block hash errors should be 2");
-        assertEq(proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 1, "Total segment extraction errors should be 1");
-        assertEq(proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 1, "Total entropy generation errors should be 1");
+        assertEq(
+            proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION),
+            1,
+            "Total segment extraction errors should be 1"
+        );
+        assertEq(
+            proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION),
+            1,
+            "Total entropy generation errors should be 1"
+        );
 
         // Verify components have errors using count functions
         assertGt(proxy.getComponentTotalErrorCount(COMPONENT_BLOCK_HASH), 0, "Block hash component should have errors");
-        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 0, "Segment extraction component should have errors");
-        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 0, "Entropy generation component should have errors");
+        assertGt(
+            proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION),
+            0,
+            "Segment extraction component should have errors"
+        );
+        assertGt(
+            proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION),
+            0,
+            "Entropy generation component should have errors"
+        );
 
         // Reset fallback counters
         proxy.resetFallbackCounters();
 
         // Verify all counts are reset
-        assertEq(proxy.getComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH), 0, "Count should be reset to 0");
-        assertEq(proxy.getComponentErrorCount(COMPONENT_SEGMENT_EXTRACTION, ERROR_SHIFT_OVERFLOW), 0, "Count should be reset to 0");
-        assertEq(proxy.getComponentErrorCount(COMPONENT_ENTROPY_GENERATION, ERROR_ZERO_SEGMENT), 0, "Count should be reset to 0");
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH), 0, "Count should be reset to 0"
+        );
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_SEGMENT_EXTRACTION, ERROR_SHIFT_OVERFLOW),
+            0,
+            "Count should be reset to 0"
+        );
+        assertEq(
+            proxy.getComponentErrorCount(COMPONENT_ENTROPY_GENERATION, ERROR_ZERO_SEGMENT),
+            0,
+            "Count should be reset to 0"
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -429,11 +444,9 @@ contract BlockDataEntropyFallbackTest is Test {
         bool[6] memory foundErrorCodes; // Index 0 unused, codes are 1-5
 
         // Verify each event
-        bytes32 expectedEventSignature = keccak256(
-            "SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)"
-        );
+        bytes32 expectedEventSignature = keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)");
 
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == expectedEventSignature) {
                 uint8 errorCode = uint8(uint256(entries[i].topics[3]));
                 if (errorCode > 0 && errorCode <= 5) {
@@ -444,8 +457,13 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // Verify we found all the error codes we emitted
         assertTrue(foundErrorCodes[ERROR_ZERO_BLOCK_HASH], "ERROR_ZERO_BLOCK_HASH event should be found");
-        assertTrue(foundErrorCodes[ERROR_ZERO_BLOCKHASH_FALLBACK], "ERROR_ZERO_BLOCKHASH_FALLBACK event should be found");
-        assertTrue(foundErrorCodes[ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS], "ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS event should be found");
+        assertTrue(
+            foundErrorCodes[ERROR_ZERO_BLOCKHASH_FALLBACK], "ERROR_ZERO_BLOCKHASH_FALLBACK event should be found"
+        );
+        assertTrue(
+            foundErrorCodes[ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS],
+            "ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS event should be found"
+        );
     }
 
     /// @notice Test indexed event format
@@ -464,12 +482,7 @@ contract BlockDataEntropyFallbackTest is Test {
 
         // The componentId will be determined by the forceEmitCustomFallback function
         // which assigns COMPONENT_ENTROPY_GENERATION for unknown function names
-        verifyFallbackEvent(
-            entries,
-            COMPONENT_ENTROPY_GENERATION,
-            "testFunction",
-            ERROR_ZERO_SEGMENT
-        );
+        verifyFallbackEvent(entries, COMPONENT_ENTROPY_GENERATION, "testFunction", ERROR_ZERO_SEGMENT);
     }
 
     /// @notice Test paranoid check in cycle segment index
@@ -504,16 +517,14 @@ contract BlockDataEntropyFallbackTest is Test {
         uint8 expectedErrorCode
     ) internal view {
         bool foundEvent = false;
-        bytes32 expectedEventSignature = keccak256(
-            "SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)"
-        );
+        bytes32 expectedEventSignature = keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)");
 
         // Get the expected component name based on component ID
         string memory expectedComponentName = proxy.exposedGetComponentName(componentId);
         bytes32 expectedComponentHash = keccak256(bytes(expectedComponentName));
         bytes32 expectedFunctionHash = keccak256(bytes(expectedFunction));
 
-        for (uint i = 0; i < logs.length; i++) {
+        for (uint256 i = 0; i < logs.length; i++) {
             if (logs[i].topics[0] == expectedEventSignature) {
                 // Check if this event matches our expected parameters
                 if (logs[i].topics[3] == bytes32(uint256(expectedErrorCode))) {

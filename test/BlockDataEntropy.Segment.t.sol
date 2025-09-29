@@ -47,15 +47,16 @@ contract BlockDataEntropySegmentTest is Test {
 
         // Verify all segments are non-zero
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
-            assertTrue(segments[i] != bytes8(0),
-                string.concat("Segment ", vm.toString(i), " should not be zero"));
+            assertTrue(segments[i] != bytes8(0), string.concat("Segment ", vm.toString(i), " should not be zero"));
         }
 
         // Verify segments are different from each other
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
             for (uint256 j = i + 1; j < SEGMENT_COUNT; j++) {
-                assertTrue(segments[i] != segments[j],
-                    string.concat("Segment ", vm.toString(i), " and ", vm.toString(j), " should be different"));
+                assertTrue(
+                    segments[i] != segments[j],
+                    string.concat("Segment ", vm.toString(i), " and ", vm.toString(j), " should be different")
+                );
             }
         }
     }
@@ -92,8 +93,9 @@ contract BlockDataEntropySegmentTest is Test {
 
         // Verify masking worked correctly for all segments
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
-            assertEq(segments[i], expected,
-                string.concat("Segment ", vm.toString(i), " should be all 1's for this hash"));
+            assertEq(
+                segments[i], expected, string.concat("Segment ", vm.toString(i), " should be all 1's for this hash")
+            );
         }
     }
 
@@ -130,8 +132,10 @@ contract BlockDataEntropySegmentTest is Test {
 
         // Verify segments from different hashes are different
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
-            assertTrue(segments1[i] != segments2[i],
-                string.concat("Segment ", vm.toString(i), " from different hashes should be different"));
+            assertTrue(
+                segments1[i] != segments2[i],
+                string.concat("Segment ", vm.toString(i), " from different hashes should be different")
+            );
         }
     }
 
@@ -178,7 +182,8 @@ contract BlockDataEntropySegmentTest is Test {
         }
 
         // Basic validation that we have reasonable distribution
-        uint256 totalSegmentsWithData = segmentNonZeroCount[0] + segmentNonZeroCount[1] + segmentNonZeroCount[2] + segmentNonZeroCount[3];
+        uint256 totalSegmentsWithData =
+            segmentNonZeroCount[0] + segmentNonZeroCount[1] + segmentNonZeroCount[2] + segmentNonZeroCount[3];
 
         // We expect most segments to have data for random hashes
         assertTrue(totalSegmentsWithData > sampleSize * 2, "Should have data in most segments");
@@ -267,15 +272,24 @@ contract BlockDataEntropySegmentTest is Test {
 
             // Verify segment index progression
             uint256 expectedIndex = (initialSegmentIndex + i + 1) % SEGMENT_COUNT;
-            assertEq(blockDataEntropy.getCurrentSegmentIndex(), expectedIndex,
-                string.concat("Segment index should be ", vm.toString(expectedIndex), " after call ", vm.toString(i + 1)));
+            assertEq(
+                blockDataEntropy.getCurrentSegmentIndex(),
+                expectedIndex,
+                string.concat(
+                    "Segment index should be ", vm.toString(expectedIndex), " after call ", vm.toString(i + 1)
+                )
+            );
         }
 
         // Verify all entropy values are different (they should be due to different segments and salts)
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
             for (uint256 j = i + 1; j < SEGMENT_COUNT; j++) {
-                assertTrue(entropies[i] != entropies[j],
-                    string.concat("Entropy at segment ", vm.toString(i), " and ", vm.toString(j), " should be different"));
+                assertTrue(
+                    entropies[i] != entropies[j],
+                    string.concat(
+                        "Entropy at segment ", vm.toString(i), " and ", vm.toString(j), " should be different"
+                    )
+                );
             }
         }
 
@@ -291,8 +305,10 @@ contract BlockDataEntropySegmentTest is Test {
 
         // All segments should be non-zero (using fallback)
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
-            assertTrue(segments[i] != bytes8(0),
-                string.concat("Segment ", vm.toString(i), " should not be zero even with zero hash"));
+            assertTrue(
+                segments[i] != bytes8(0),
+                string.concat("Segment ", vm.toString(i), " should not be zero even with zero hash")
+            );
         }
     }
 
@@ -307,10 +323,16 @@ contract BlockDataEntropySegmentTest is Test {
 
         // Verify consistency across calls
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
-            assertEq(segments1[i], segments2[i],
-                string.concat("Segment ", vm.toString(i), " should be consistent between calls 1 and 2"));
-            assertEq(segments2[i], segments3[i],
-                string.concat("Segment ", vm.toString(i), " should be consistent between calls 2 and 3"));
+            assertEq(
+                segments1[i],
+                segments2[i],
+                string.concat("Segment ", vm.toString(i), " should be consistent between calls 1 and 2")
+            );
+            assertEq(
+                segments2[i],
+                segments3[i],
+                string.concat("Segment ", vm.toString(i), " should be consistent between calls 2 and 3")
+            );
         }
     }
 
@@ -330,15 +352,15 @@ contract BlockDataEntropySegmentTest is Test {
         // Verify min hash segments
         assertEq(minSegments[0], bytes8(uint64(1)), "Min hash segment 0 should be 1");
         for (uint256 i = 1; i < SEGMENT_COUNT; i++) {
-            assertEq(minSegments[i], bytes8(0),
-                string.concat("Min hash segment ", vm.toString(i), " should be 0"));
+            assertEq(minSegments[i], bytes8(0), string.concat("Min hash segment ", vm.toString(i), " should be 0"));
         }
 
         // Verify max hash segments (all should be max uint64)
         bytes8 expectedMax = bytes8(type(uint64).max);
         for (uint256 i = 0; i < SEGMENT_COUNT; i++) {
-            assertEq(maxSegments[i], expectedMax,
-                string.concat("Max hash segment ", vm.toString(i), " should be max uint64"));
+            assertEq(
+                maxSegments[i], expectedMax, string.concat("Max hash segment ", vm.toString(i), " should be max uint64")
+            );
         }
     }
 
@@ -418,7 +440,7 @@ contract BlockDataEntropySegmentTest is Test {
         // Verify event was emitted for the error condition
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bool foundEvent = false;
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)")) {
                 foundEvent = true;
                 break;

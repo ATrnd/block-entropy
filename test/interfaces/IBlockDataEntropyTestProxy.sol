@@ -11,7 +11,6 @@ import {IBlockEntropy} from "../../src/interfaces/IBlockEntropy.sol";
  * @author ATrnd
  */
 interface IBlockDataEntropyTestProxy is IBlockEntropy {
-
     /*//////////////////////////////////////////////////////////////
                          TEST-ONLY STATE QUERIES
     //////////////////////////////////////////////////////////////*/

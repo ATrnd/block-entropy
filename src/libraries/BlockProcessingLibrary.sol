@@ -10,7 +10,6 @@ import {BlockEntropyConstants} from "../constants/BlockEntropyConstants.sol";
  * @author ATrnd
  */
 library BlockProcessingLibrary {
-
     /*//////////////////////////////////////////////////////////////
                          BLOCK HASH GENERATION
     //////////////////////////////////////////////////////////////*/
@@ -20,23 +19,23 @@ library BlockProcessingLibrary {
     /// @return 32-byte hash derived from block.timestamp, block.number, prevrandao, basefee, coinbase, gaslimit, chainid, and previous blockhash
     function generateBlockHash() internal view returns (bytes32) {
         // Collect all available block data for maximum entropy
-        return keccak256(abi.encode(
-            // Block context - all available properties
-            block.timestamp,
-            block.number,
-            block.prevrandao,
-            block.basefee,
-            block.coinbase,
-            block.gaslimit,
-            block.chainid,
-
-            // Include the previous block hash
-            blockhash(block.number - BlockEntropyConstants.PREVIOUS_BLOCK_OFFSET),
-
-            // Include contract state for additional uniqueness
-            address(this),
-            BlockEntropyConstants.ZERO_UINT // Using constant instead of s_transactionCounter for library purity
-        ));
+        return keccak256(
+            abi.encode(
+                // Block context - all available properties
+                block.timestamp,
+                block.number,
+                block.prevrandao,
+                block.basefee,
+                block.coinbase,
+                block.gaslimit,
+                block.chainid,
+                // Include the previous block hash
+                blockhash(block.number - BlockEntropyConstants.PREVIOUS_BLOCK_OFFSET),
+                // Include contract state for additional uniqueness
+                address(this),
+                BlockEntropyConstants.ZERO_UINT // Using constant instead of s_transactionCounter for library purity
+            )
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

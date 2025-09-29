@@ -8,7 +8,6 @@ pragma solidity ^0.8.28;
  * @author ATrnd
  */
 interface IBlockEntropy {
-
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -36,20 +35,13 @@ interface IBlockEntropy {
     /// @notice Emitted when block hash is generated from comprehensive block properties
     /// @param blockNumber Block that triggered hash generation due to block.number change
     /// @param hashValue 256-bit keccak256 hash derived from 8 block properties
-    event BlockHashGenerated(
-        uint256 indexed blockNumber,
-        bytes32 hashValue
-    );
+    event BlockHashGenerated(uint256 indexed blockNumber, bytes32 hashValue);
 
     /// @notice Emitted when entropy generation completes successfully
     /// @param requester Address that requested entropy generation
     /// @param segmentIndex Current 64-bit segment position used (0-3)
     /// @param blockNumber Block context for temporal entropy generation
-    event EntropyGenerated(
-        address indexed requester,
-        uint256 segmentIndex,
-        uint256 blockNumber
-    );
+    event EntropyGenerated(address indexed requester, uint256 segmentIndex, uint256 blockNumber);
 
     /// @notice Emitted when fallback mechanism is triggered due to validation failure
     /// @param component_hash Keccak256 hash of component name for efficient event filtering
@@ -146,5 +138,4 @@ interface IBlockEntropy {
     /// @notice Gets the count of invalid orchestrator address errors in the access control component
     /// @return The error count
     function getAccessControlInvalidOrchestratorAddressCount() external view returns (uint256);
-
 }

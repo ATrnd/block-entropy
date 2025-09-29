@@ -10,7 +10,6 @@ import {BlockEntropyConstants} from "../constants/BlockEntropyConstants.sol";
  * @author ATrnd
  */
 library BlockValidationLibrary {
-
     /*//////////////////////////////////////////////////////////////
                          HASH VALIDATION
     //////////////////////////////////////////////////////////////*/

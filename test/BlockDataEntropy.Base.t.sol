@@ -157,10 +157,18 @@ contract BlockDataEntropyBaseTest is Test {
         blockDataEntropy.getEntropy(456);
 
         // Check that the segment error was tracked
-        assertEq(blockDataEntropy.getEntropyGenerationZeroSegmentCount(), 2, "Entropy zero segment count should be 2 (cascading errors)");
+        assertEq(
+            blockDataEntropy.getEntropyGenerationZeroSegmentCount(),
+            2,
+            "Entropy zero segment count should be 2 (cascading errors)"
+        );
 
         // Verify total error count for entropy generation component (cascading errors)
-        assertEq(blockDataEntropy.getComponentTotalErrorCount(3), 2, "Total entropy generation errors should be 2 (cascading errors)");
+        assertEq(
+            blockDataEntropy.getComponentTotalErrorCount(3),
+            2,
+            "Total entropy generation errors should be 2 (cascading errors)"
+        );
 
         // Check error counts instead of boolean function
         assertGt(blockDataEntropy.getComponentTotalErrorCount(3), 0, "Component should have errors");

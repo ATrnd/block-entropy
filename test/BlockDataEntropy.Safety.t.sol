@@ -73,9 +73,7 @@ contract BlockDataEntropySafetyTest is Test {
         assertTrue(entries.length > 0, "Should have emitted at least one event");
 
         // The expected event signature
-        bytes32 expectedEventSignature = keccak256(
-            "SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)"
-        );
+        bytes32 expectedEventSignature = keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)");
 
         // Verify the event signature
         assertEq(entries[0].topics[0], expectedEventSignature, "Wrong event signature");
@@ -115,21 +113,19 @@ contract BlockDataEntropySafetyTest is Test {
 
         // Verify component-specific error counter incremented
         assertEq(
-            proxy.getEntropyGenerationZeroHashCount(),
-            initialErrorCount + 1,
-            "Component error counter should increment"
+            proxy.getEntropyGenerationZeroHashCount(), initialErrorCount + 1, "Component error counter should increment"
         );
 
         // Verify event emission
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bool foundEvent = false;
-        bytes32 expectedEventSignature = keccak256(
-            "SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)"
-        );
+        bytes32 expectedEventSignature = keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)");
 
-        for (uint i = 0; i < entries.length; i++) {
-            if (entries[i].topics[0] == expectedEventSignature &&
-                entries[i].topics[3] == bytes32(uint256(ERROR_ZERO_BLOCK_HASH))) {
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (
+                entries[i].topics[0] == expectedEventSignature
+                    && entries[i].topics[3] == bytes32(uint256(ERROR_ZERO_BLOCK_HASH))
+            ) {
                 foundEvent = true;
                 break;
             }
@@ -317,8 +313,12 @@ contract BlockDataEntropySafetyTest is Test {
 
         // Verify initial state using proxy
         assertEq(proxy.getComponentTotalErrorCount(COMPONENT_BLOCK_HASH), 0, "Initial block hash errors should be 0");
-        assertEq(proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 0, "Initial segment errors should be 0");
-        assertEq(proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 0, "Initial entropy errors should be 0");
+        assertEq(
+            proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 0, "Initial segment errors should be 0"
+        );
+        assertEq(
+            proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 0, "Initial entropy errors should be 0"
+        );
 
         // Force some errors manually using proxy
         proxy.forceIncrementComponentErrorCount(COMPONENT_BLOCK_HASH, ERROR_ZERO_BLOCK_HASH);
@@ -332,8 +332,12 @@ contract BlockDataEntropySafetyTest is Test {
 
         // Verify components have errors using count functions
         assertGt(proxy.getComponentTotalErrorCount(COMPONENT_BLOCK_HASH), 0, "Block hash component should have errors");
-        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 0, "Segment component should have errors");
-        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 0, "Entropy component should have errors");
+        assertGt(
+            proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 0, "Segment component should have errors"
+        );
+        assertGt(
+            proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 0, "Entropy component should have errors"
+        );
     }
 
     function test_ExtremeSegmentIndexValues() public {
@@ -380,8 +384,10 @@ contract BlockDataEntropySafetyTest is Test {
         // Verify all entropy values are different (due to transaction counter and salt differences)
         for (uint256 i = 0; i < 5; i++) {
             for (uint256 j = i + 1; j < 5; j++) {
-                assertTrue(entropies[i] != entropies[j],
-                    string.concat("Fallback entropy ", vm.toString(i), " and ", vm.toString(j), " should be different"));
+                assertTrue(
+                    entropies[i] != entropies[j],
+                    string.concat("Fallback entropy ", vm.toString(i), " and ", vm.toString(j), " should be different")
+                );
             }
         }
     }
@@ -406,12 +412,13 @@ contract BlockDataEntropySafetyTest is Test {
         assertTrue(entropy != bytes32(0), "Should generate valid entropy even with cascading failures");
 
         // Check that the zero hash error was handled (this takes precedence over segment issues)
-        assertTrue(proxy.getEntropyGenerationZeroHashCount() > 0,
-                  "Zero hash error should have been handled");
+        assertTrue(proxy.getEntropyGenerationZeroHashCount() > 0, "Zero hash error should have been handled");
 
         // Since zero block hash triggers emergency entropy and bypasses segment extraction,
         // the segment index remains unchanged (this is correct safety behavior)
-        assertEq(proxy.getCurrentSegmentIndex(), 999, "Segment index should remain unchanged when emergency entropy is used");
+        assertEq(
+            proxy.getCurrentSegmentIndex(), 999, "Segment index should remain unchanged when emergency entropy is used"
+        );
 
         // Verify events were emitted
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -443,13 +450,16 @@ contract BlockDataEntropySafetyTest is Test {
         assertTrue(entropy != bytes32(0), "Should generate valid entropy even with zero segment");
 
         // Verify component error count incremented (cascading errors expected)
-        assertEq(proxy.getEntropyGenerationZeroSegmentCount(), initialErrorCount + 2,
-                 "Zero segment error count should increment by 2 (cascading errors)");
+        assertEq(
+            proxy.getEntropyGenerationZeroSegmentCount(),
+            initialErrorCount + 2,
+            "Zero segment error count should increment by 2 (cascading errors)"
+        );
 
         // Verify event emission
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bool foundEvent = false;
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)")) {
                 foundEvent = true;
                 break;
@@ -483,13 +493,16 @@ contract BlockDataEntropySafetyTest is Test {
         assertTrue(entropy != bytes32(0), "Should generate valid entropy despite shift overflow");
 
         // Verify component error count incremented
-        assertEq(proxy.getSegmentExtractionShiftOverflowCount(), initialErrorCount + 1,
-                 "Shift overflow error count should increment");
+        assertEq(
+            proxy.getSegmentExtractionShiftOverflowCount(),
+            initialErrorCount + 1,
+            "Shift overflow error count should increment"
+        );
 
         // Verify event emission
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bool foundEvent = false;
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)")) {
                 foundEvent = true;
                 break;
@@ -522,14 +535,15 @@ contract BlockDataEntropySafetyTest is Test {
         assertTrue(entropy != bytes32(0), "Should generate entropy despite cascading failures");
 
         // Verify multiple component errors were handled
-        assertTrue(proxy.getBlockHashZeroHashCount() > 0 ||
-                  proxy.getBlockHashZeroBlockhashFallbackCount() > 0,
-                  "Block hash component should have recorded errors");
+        assertTrue(
+            proxy.getBlockHashZeroHashCount() > 0 || proxy.getBlockHashZeroBlockhashFallbackCount() > 0,
+            "Block hash component should have recorded errors"
+        );
 
         // Verify events were emitted for multiple failures
         Vm.Log[] memory entries = vm.getRecordedLogs();
         uint256 fallbackEventCount = 0;
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == keccak256("SafetyFallbackTriggered(bytes32,bytes32,uint8,string,string)")) {
                 fallbackEventCount++;
             }

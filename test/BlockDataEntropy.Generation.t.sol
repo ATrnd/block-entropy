@@ -109,13 +109,19 @@ contract BlockDataEntropyGenerationTest is Test {
         // Verify all values are different
         for (uint256 i = 0; i < 10; i++) {
             for (uint256 j = i + 1; j < 10; j++) {
-                assertTrue(entropyValues[i] != entropyValues[j],
-                    string.concat("Entropy values ", vm.toString(i), " and ", vm.toString(j), " should be different"));
+                assertTrue(
+                    entropyValues[i] != entropyValues[j],
+                    string.concat("Entropy values ", vm.toString(i), " and ", vm.toString(j), " should be different")
+                );
             }
         }
 
         // Verify state
-        assertEq(blockDataEntropy.getTransactionCounter(), initialTxCounter + 10, "Transaction counter should increment 10 times");
+        assertEq(
+            blockDataEntropy.getTransactionCounter(),
+            initialTxCounter + 10,
+            "Transaction counter should increment 10 times"
+        );
         assertEq(blockDataEntropy.getCurrentSegmentIndex(), 10 % 4, "Segment index should be correctly updated");
 
         vm.stopPrank();
@@ -133,15 +139,25 @@ contract BlockDataEntropyGenerationTest is Test {
         // Generate entropy for a complete cycle
         for (uint256 i = 0; i < 4; i++) {
             cycleEntropy[i] = blockDataEntropy.getEntropy(123);
-            assertEq(blockDataEntropy.getCurrentSegmentIndex(), (initialSegmentIndex + i + 1) % 4,
-                string.concat("Segment index after call ", vm.toString(i), " should be ", vm.toString((initialSegmentIndex + i + 1) % 4)));
+            assertEq(
+                blockDataEntropy.getCurrentSegmentIndex(),
+                (initialSegmentIndex + i + 1) % 4,
+                string.concat(
+                    "Segment index after call ",
+                    vm.toString(i),
+                    " should be ",
+                    vm.toString((initialSegmentIndex + i + 1) % 4)
+                )
+            );
 
             // Verify each segment was used by checking the block hash hasn't changed
             assertTrue(blockDataEntropy.getCurrentBlockHash() != bytes32(0), "Block hash should not be zero");
         }
 
         // After a complete cycle, segment index should be back to initial
-        assertEq(blockDataEntropy.getCurrentSegmentIndex(), initialSegmentIndex, "Segment index should cycle back to initial");
+        assertEq(
+            blockDataEntropy.getCurrentSegmentIndex(), initialSegmentIndex, "Segment index should cycle back to initial"
+        );
 
         // Now generate entropy for a second cycle
         bytes32[4] memory secondCycleEntropy;
@@ -152,8 +168,10 @@ contract BlockDataEntropyGenerationTest is Test {
         // Each entropy value in second cycle should be different from the first cycle
         // (Should be true since transaction counter increments)
         for (uint256 i = 0; i < 4; i++) {
-            assertTrue(cycleEntropy[i] != secondCycleEntropy[i],
-                string.concat("Entropy from different cycles at index ", vm.toString(i), " should be different"));
+            assertTrue(
+                cycleEntropy[i] != secondCycleEntropy[i],
+                string.concat("Entropy from different cycles at index ", vm.toString(i), " should be different")
+            );
         }
 
         vm.stopPrank();
@@ -169,11 +187,19 @@ contract BlockDataEntropyGenerationTest is Test {
         // Test increment through getEntropy function
         uint256 initialCount = blockDataEntropy.getTransactionCounter();
         blockDataEntropy.getEntropy(123);
-        assertEq(blockDataEntropy.getTransactionCounter(), initialCount + 1, "getEntropy should increment counter exactly once");
+        assertEq(
+            blockDataEntropy.getTransactionCounter(),
+            initialCount + 1,
+            "getEntropy should increment counter exactly once"
+        );
 
         // Another call should increment again
         blockDataEntropy.getEntropy(456);
-        assertEq(blockDataEntropy.getTransactionCounter(), initialCount + 2, "Second getEntropy should increment counter again");
+        assertEq(
+            blockDataEntropy.getTransactionCounter(),
+            initialCount + 2,
+            "Second getEntropy should increment counter again"
+        );
 
         vm.stopPrank();
     }
@@ -184,14 +210,22 @@ contract BlockDataEntropyGenerationTest is Test {
         // First user makes a call
         vm.prank(user);
         blockDataEntropy.getEntropy(123);
-        assertEq(blockDataEntropy.getTransactionCounter(), initialCount + 1, "Transaction counter should increment after first user");
+        assertEq(
+            blockDataEntropy.getTransactionCounter(),
+            initialCount + 1,
+            "Transaction counter should increment after first user"
+        );
 
         // Second user makes a call
         address user2 = makeAddr("user2");
         vm.deal(user2, 1 ether);
         vm.prank(user2);
         blockDataEntropy.getEntropy(456);
-        assertEq(blockDataEntropy.getTransactionCounter(), initialCount + 2, "Transaction counter should increment after second user");
+        assertEq(
+            blockDataEntropy.getTransactionCounter(),
+            initialCount + 2,
+            "Transaction counter should increment after second user"
+        );
     }
 
     /// ============================================
@@ -219,16 +253,24 @@ contract BlockDataEntropyGenerationTest is Test {
             blockHashes[i] = blockDataEntropy.getCurrentBlockHash();
 
             // Verify block processed is updated
-            assertEq(blockDataEntropy.getLastProcessedBlock(), block.number, "Last processed block should match current block");
+            assertEq(
+                blockDataEntropy.getLastProcessedBlock(),
+                block.number,
+                "Last processed block should match current block"
+            );
         }
 
         // Verify all values are different
         for (uint256 i = 0; i < 5; i++) {
             for (uint256 j = i + 1; j < 5; j++) {
-                assertTrue(entropyValues[i] != entropyValues[j],
-                    string.concat("Entropy in blocks ", vm.toString(i), " and ", vm.toString(j), " should be different"));
-                assertTrue(blockHashes[i] != blockHashes[j],
-                    string.concat("Block hashes ", vm.toString(i), " and ", vm.toString(j), " should be different"));
+                assertTrue(
+                    entropyValues[i] != entropyValues[j],
+                    string.concat("Entropy in blocks ", vm.toString(i), " and ", vm.toString(j), " should be different")
+                );
+                assertTrue(
+                    blockHashes[i] != blockHashes[j],
+                    string.concat("Block hashes ", vm.toString(i), " and ", vm.toString(j), " should be different")
+                );
             }
         }
 
@@ -345,11 +387,19 @@ contract BlockDataEntropyGenerationTest is Test {
 
         // Verify hash didn't change
         assertEq(blockDataEntropy.getCurrentBlockHash(), firstBlockHash, "Block hash should be cached and not change");
-        assertEq(blockDataEntropy.getLastProcessedBlock(), firstProcessedBlock, "Processed block should not update when bypassed");
+        assertEq(
+            blockDataEntropy.getLastProcessedBlock(),
+            firstProcessedBlock,
+            "Processed block should not update when bypassed"
+        );
 
         // Verify segment index cycled and transaction counter incremented
         assertEq(blockDataEntropy.getCurrentSegmentIndex(), (firstSegmentIndex + 1) % 4, "Segment index should cycle");
-        assertEq(blockDataEntropy.getTransactionCounter(), firstTransactionCounter + 1, "Transaction counter should increment");
+        assertEq(
+            blockDataEntropy.getTransactionCounter(),
+            firstTransactionCounter + 1,
+            "Transaction counter should increment"
+        );
 
         vm.stopPrank();
     }
@@ -427,7 +477,8 @@ contract BlockDataEntropyGenerationTest is Test {
         // Track segment progression through multiple calls
         uint256 initialSegmentIndex = blockDataEntropy.getCurrentSegmentIndex();
 
-        for (uint256 i = 0; i < 8; i++) { // Test 2 full cycles
+        for (uint256 i = 0; i < 8; i++) {
+            // Test 2 full cycles
             uint256 expectedIndex = (initialSegmentIndex + i + 1) % 4;
             blockDataEntropy.getEntropy(i);
 
@@ -472,7 +523,13 @@ contract BlockDataEntropyGenerationTest is Test {
             assertEq(
                 blockDataEntropy.getTransactionCounter(),
                 initialCounter + i,
-                string.concat("Transaction counter should be ", vm.toString(initialCounter + i), " after ", vm.toString(i), " calls")
+                string.concat(
+                    "Transaction counter should be ",
+                    vm.toString(initialCounter + i),
+                    " after ",
+                    vm.toString(i),
+                    " calls"
+                )
             );
         }
 

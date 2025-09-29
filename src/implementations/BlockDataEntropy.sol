@@ -11,7 +11,6 @@ import {AbstractBlockEntropy} from "../abstracts/AbstractBlockEntropy.sol";
  * @author ATrnd
  */
 contract BlockDataEntropy is AbstractBlockEntropy {
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/

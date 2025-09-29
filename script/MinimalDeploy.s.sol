@@ -6,6 +6,7 @@ import {BlockDataEntropy} from "../src/implementations/BlockDataEntropy.sol";
 
 contract MinimalDeploy is Script {
     bytes32 private constant DEFAULT_SALT = keccak256("BlockDataEntropy");
+
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
@@ -18,9 +19,7 @@ contract MinimalDeploy is Script {
         console.log("[INFO] Network:", block.chainid);
 
         vm.startBroadcast(deployerKey);
-        BlockDataEntropy deployed = new BlockDataEntropy{salt: salt}(
-            owner
-        );
+        BlockDataEntropy deployed = new BlockDataEntropy{salt: salt}(owner);
         vm.stopBroadcast();
         require(deployed.owner() == owner, "Deployment verification failed");
         console.log("[SUCCESS] BlockDataEntropy deployed to:", address(deployed));

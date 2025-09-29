@@ -11,7 +11,6 @@ import {BlockDataEntropy} from "../src/implementations/BlockDataEntropy.sol";
  * @dev Tests deployment functionality, configuration, and edge cases for BlockDataEntropy
  */
 contract MinimalDeployTest is Test {
-
     MinimalDeploy private deployScript;
 
     // Test accounts
@@ -74,8 +73,8 @@ contract MinimalDeployTest is Test {
 
         uint256[] memory chainIds = new uint256[](3);
         chainIds[0] = 11155111; // Sepolia
-        chainIds[1] = 360;      // Shape Mainnet
-        chainIds[2] = 31337;    // Local
+        chainIds[1] = 360; // Shape Mainnet
+        chainIds[2] = 31337; // Local
 
         for (uint256 i = 0; i < chainIds.length; i++) {
             vm.chainId(chainIds[i]);

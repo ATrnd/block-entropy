@@ -97,7 +97,7 @@ contract FunctionSignatureVerificationTest is Test {
         bool foundBlockHashEvent = false;
         bool foundEntropyEvent = false;
 
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == blockHashGeneratedSig) {
                 foundBlockHashEvent = true;
             }
@@ -141,10 +141,14 @@ contract FunctionSignatureVerificationTest is Test {
         // Test component error functions
         for (uint8 componentId = 1; componentId <= 3; componentId++) {
             assertEq(blockEntropy.getComponentTotalErrorCount(componentId), 0, "Initial component total error count");
-            assertEq(blockEntropy.getComponentTotalErrorCount(componentId), 0, "Initial component error count should be zero");
+            assertEq(
+                blockEntropy.getComponentTotalErrorCount(componentId), 0, "Initial component error count should be zero"
+            );
 
             for (uint8 errorCode = 1; errorCode <= 5; errorCode++) {
-                assertEq(blockEntropy.getComponentErrorCount(componentId, errorCode), 0, "Initial component error count");
+                assertEq(
+                    blockEntropy.getComponentErrorCount(componentId, errorCode), 0, "Initial component error count"
+                );
             }
         }
 

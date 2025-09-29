@@ -17,11 +17,7 @@ import {BlockFallbackLibrary} from "../libraries/BlockFallbackLibrary.sol";
  *      Complements AddressDataEntropy for temporal-based vs identity-based entropy requirements
  * @author ATrnd
  */
-abstract contract AbstractBlockEntropy is
-    IBlockEntropy,
-    IBlockFallbackHandler,
-    Ownable
-{
+abstract contract AbstractBlockEntropy is IBlockEntropy, IBlockFallbackHandler, Ownable {
     /*//////////////////////////////////////////////////////////////
                             USING STATEMENTS
     //////////////////////////////////////////////////////////////*/
@@ -134,10 +130,7 @@ abstract contract AbstractBlockEntropy is
         }
 
         // Extract the current segment of the block hash
-        bytes8 currentSegment = _extractBlockHashSegment(
-            s_currentBlockHash,
-            s_currentSegmentIndex
-        );
+        bytes8 currentSegment = _extractBlockHashSegment(s_currentBlockHash, s_currentSegmentIndex);
 
         // Validate the extracted segment
         if (BlockValidationLibrary.isZeroSegment(currentSegment)) {
@@ -153,26 +146,22 @@ abstract contract AbstractBlockEntropy is
         }
 
         // Generate entropy by combining segment with other sources
-        bytes32 entropy = keccak256(abi.encode(
-            // Extracted segment
-            currentSegment,
-            s_currentSegmentIndex,
-
-            // Block context for additional entropy
-            block.timestamp,
-            block.number,
-
-            // Transaction context
-            msg.sender,
-            salt,
-            currentTx
-        ));
-
-        emit EntropyGenerated(
-            msg.sender,
-            s_currentSegmentIndex,
-            block.number
+        bytes32 entropy = keccak256(
+            abi.encode(
+                // Extracted segment
+                currentSegment,
+                s_currentSegmentIndex,
+                // Block context for additional entropy
+                block.timestamp,
+                block.number,
+                // Transaction context
+                msg.sender,
+                salt,
+                currentTx
+            )
         );
+
+        emit EntropyGenerated(msg.sender, s_currentSegmentIndex, block.number);
 
         // Update segment index for next call
         _cycleSegmentIndex();
@@ -234,11 +223,7 @@ abstract contract AbstractBlockEntropy is
     /// @param componentId The component where the fallback occurred
     /// @param functionName The function where the fallback occurred
     /// @param errorCode The specific error code
-    function _handleFallback(
-        uint8 componentId,
-        string memory functionName,
-        uint8 errorCode
-    ) internal {
+    function _handleFallback(uint8 componentId, string memory functionName, uint8 errorCode) internal {
         // Increment the specific error counter for this component
         _incrementComponentErrorCount(componentId, errorCode);
 
@@ -247,11 +232,7 @@ abstract contract AbstractBlockEntropy is
 
         // Emit the event
         emit SafetyFallbackTriggered(
-            keccak256(bytes(componentName)),
-            keccak256(bytes(functionName)),
-            errorCode,
-            componentName,
-            functionName
+            keccak256(bytes(componentName)), keccak256(bytes(functionName)), errorCode, componentName, functionName
         );
     }
 
@@ -320,7 +301,8 @@ abstract contract AbstractBlockEntropy is
                 s_currentSegmentIndex = BlockEntropyConstants.ZERO_UINT;
             } else {
                 // Otherwise, increment and apply modulo
-                s_currentSegmentIndex = (s_currentSegmentIndex + BlockEntropyConstants.INDEX_INCREMENT) % BlockEntropyConstants.SEGMENT_COUNT;
+                s_currentSegmentIndex = (s_currentSegmentIndex + BlockEntropyConstants.INDEX_INCREMENT)
+                    % BlockEntropyConstants.SEGMENT_COUNT;
             }
         }
     }
@@ -331,9 +313,8 @@ abstract contract AbstractBlockEntropy is
     /// @param errorCode The specific error code
     /// @return The new error count for this component/error combination
     function _incrementComponentErrorCount(uint8 componentId, uint8 errorCode) internal returns (uint256) {
-        s_componentErrorCounts[componentId][errorCode] = BlockFallbackLibrary.incrementComponentErrorCount(
-            s_componentErrorCounts[componentId][errorCode]
-        );
+        s_componentErrorCounts[componentId][errorCode] =
+            BlockFallbackLibrary.incrementComponentErrorCount(s_componentErrorCounts[componentId][errorCode]);
         return s_componentErrorCounts[componentId][errorCode];
     }
 
@@ -344,7 +325,7 @@ abstract contract AbstractBlockEntropy is
     /// @notice Generates a hash from current block data
     /// @dev Combines multiple block properties for entropy
     /// @return A 32-byte hash representing the current block
-    function _generateBlockHash() internal virtual view returns (bytes32) {
+    function _generateBlockHash() internal view virtual returns (bytes32) {
         return BlockProcessingLibrary.generateBlockHash();
     }
 
@@ -352,7 +333,7 @@ abstract contract AbstractBlockEntropy is
     /// @dev Virtual function to allow overriding in test environments
     /// @param blockNumber The block number to get the hash for
     /// @return The block hash
-    function _getBlockhash(uint256 blockNumber) internal virtual view returns (bytes32) {
+    function _getBlockhash(uint256 blockNumber) internal view virtual returns (bytes32) {
         return BlockTimingLibrary.getBlockhash(blockNumber);
     }
 
@@ -365,8 +346,10 @@ abstract contract AbstractBlockEntropy is
         return BlockFallbackLibrary.generateEmergencyEntropy(
             salt,
             txCounter,
-            s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH],
-            s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants.ERROR_ZERO_SEGMENT]
+            s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants
+                .ERROR_ZERO_BLOCK_HASH],
+            s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants
+                .ERROR_ZERO_SEGMENT]
         );
     }
 
@@ -378,14 +361,26 @@ abstract contract AbstractBlockEntropy is
     /// @param componentId The component to check
     /// @param errorCode The error code to check
     /// @return The count of this specific error in this component
-    function getComponentErrorCount(uint8 componentId, uint8 errorCode) external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
+    function getComponentErrorCount(uint8 componentId, uint8 errorCode)
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
         return s_componentErrorCounts[componentId][errorCode];
     }
 
     /// @notice Gets the total errors for a specific component
     /// @param componentId The component to check
     /// @return Total error count for the component
-    function getComponentTotalErrorCount(uint8 componentId) external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
+    function getComponentTotalErrorCount(uint8 componentId)
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
         uint256 total = BlockEntropyConstants.ZERO_UINT;
         // Sum all error codes for all components (1-5 for original components, 6-9 for access control)
         total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH];
@@ -400,29 +395,70 @@ abstract contract AbstractBlockEntropy is
         return total;
     }
 
-
-    function getBlockHashZeroHashCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH];
+    function getBlockHashZeroHashCount()
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants
+            .ERROR_ZERO_BLOCK_HASH];
     }
 
-    function getBlockHashZeroBlockhashFallbackCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants.ERROR_ZERO_BLOCKHASH_FALLBACK];
+    function getBlockHashZeroBlockhashFallbackCount()
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants
+            .ERROR_ZERO_BLOCKHASH_FALLBACK];
     }
 
-    function getSegmentExtractionOutOfBoundsCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION][BlockEntropyConstants.ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS];
+    function getSegmentExtractionOutOfBoundsCount()
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION][BlockEntropyConstants
+            .ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS];
     }
 
-    function getSegmentExtractionShiftOverflowCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION][BlockEntropyConstants.ERROR_SHIFT_OVERFLOW];
+    function getSegmentExtractionShiftOverflowCount()
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION][BlockEntropyConstants
+            .ERROR_SHIFT_OVERFLOW];
     }
 
-    function getEntropyGenerationZeroHashCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH];
+    function getEntropyGenerationZeroHashCount()
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants
+            .ERROR_ZERO_BLOCK_HASH];
     }
 
-    function getEntropyGenerationZeroSegmentCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants.ERROR_ZERO_SEGMENT];
+    function getEntropyGenerationZeroSegmentCount()
+        external
+        view
+        virtual
+        override(IBlockEntropy, IBlockFallbackHandler)
+        returns (uint256)
+    {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants
+            .ERROR_ZERO_SEGMENT];
     }
 
     /// @notice Configures the orchestrator address (one-time only)
@@ -467,25 +503,29 @@ abstract contract AbstractBlockEntropy is
     /// @notice Gets the count of orchestrator not configured errors in the access control component
     /// @return The error count
     function getAccessControlOrchestratorNotConfiguredCount() external view virtual override returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_ORCHESTRATOR_NOT_CONFIGURED];
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants
+            .ERROR_ORCHESTRATOR_NOT_CONFIGURED];
     }
 
     /// @notice Gets the count of unauthorized orchestrator errors in the access control component
     /// @return The error count
     function getAccessControlUnauthorizedOrchestratorCount() external view virtual override returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_UNAUTHORIZED_ORCHESTRATOR];
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants
+            .ERROR_UNAUTHORIZED_ORCHESTRATOR];
     }
 
     /// @notice Gets the count of orchestrator already configured errors in the access control component
     /// @return The error count
     function getAccessControlOrchestratorAlreadyConfiguredCount() external view virtual override returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_ORCHESTRATOR_ALREADY_CONFIGURED];
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants
+            .ERROR_ORCHESTRATOR_ALREADY_CONFIGURED];
     }
 
     /// @notice Gets the count of invalid orchestrator address errors in the access control component
     /// @return The error count
     function getAccessControlInvalidOrchestratorAddressCount() external view virtual override returns (uint256) {
-        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_INVALID_ORCHESTRATOR_ADDRESS];
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants
+            .ERROR_INVALID_ORCHESTRATOR_ADDRESS];
     }
 
     /*//////////////////////////////////////////////////////////////

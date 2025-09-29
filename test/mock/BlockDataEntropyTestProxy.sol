@@ -15,7 +15,6 @@ import {BlockValidationLibrary} from "../../src/libraries/BlockValidationLibrary
  * @author ATrnd
  */
 contract BlockDataEntropyTestProxy is BlockDataEntropy {
-
     /*//////////////////////////////////////////////////////////////
                            TESTING STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -157,11 +156,7 @@ contract BlockDataEntropyTestProxy is BlockDataEntropy {
     /// @notice Generate a fallback block hash for testing
     /// @return Fallback block hash
     function exposedGenerateFallbackBlockHash() external view returns (bytes32) {
-        return keccak256(abi.encode(
-            block.timestamp,
-            block.number,
-            s_transactionCounter
-        ));
+        return keccak256(abi.encode(block.timestamp, block.number, s_transactionCounter));
     }
 
     /// @notice Force emit a custom fallback event for testing
@@ -275,10 +270,7 @@ contract BlockDataEntropyTestProxy is BlockDataEntropy {
         }
 
         // Extract the current segment of the block hash
-        bytes8 currentSegment = _extractBlockHashSegment(
-            s_currentBlockHash,
-            s_currentSegmentIndex
-        );
+        bytes8 currentSegment = _extractBlockHashSegment(s_currentBlockHash, s_currentSegmentIndex);
 
         // Validate the extracted segment
         if (currentSegment == bytes8(0)) {
@@ -297,15 +289,11 @@ contract BlockDataEntropyTestProxy is BlockDataEntropy {
         _cycleSegmentIndex();
 
         // Generate entropy using current segment and transaction data
-        bytes32 entropy = keccak256(abi.encode(
-            currentSegment,
-            s_currentSegmentIndex,
-            block.timestamp,
-            block.number,
-            msg.sender,
-            salt,
-            currentTx
-        ));
+        bytes32 entropy = keccak256(
+            abi.encode(
+                currentSegment, s_currentSegmentIndex, block.timestamp, block.number, msg.sender, salt, currentTx
+            )
+        );
 
         // Emit event for successful entropy generation
         emit EntropyGenerated(msg.sender, s_currentSegmentIndex, block.number);
