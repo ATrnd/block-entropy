@@ -80,6 +80,7 @@ library BlockFallbackLibrary {
         if (componentId == BlockEntropyConstants.COMPONENT_BLOCK_HASH) return BlockEntropyConstants.COMPONENT_NAME_BLOCK_HASH;
         if (componentId == BlockEntropyConstants.COMPONENT_SEGMENT_EXTRACTION) return BlockEntropyConstants.COMPONENT_NAME_SEGMENT_EXTRACTION;
         if (componentId == BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION) return BlockEntropyConstants.COMPONENT_NAME_ENTROPY_GENERATION;
+        if (componentId == BlockEntropyConstants.COMPONENT_ACCESS_CONTROL) return BlockEntropyConstants.COMPONENT_NAME_ACCESS_CONTROL;
         return BlockEntropyConstants.COMPONENT_NAME_UNKNOWN;
     }
 

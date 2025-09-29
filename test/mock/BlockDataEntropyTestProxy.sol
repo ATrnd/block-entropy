@@ -83,9 +83,9 @@ contract BlockDataEntropyTestProxy is BlockDataEntropy {
 
     /// @notice Reset all fallback counters for testing
     function resetFallbackCounters() external {
-        // Reset all component error counts
-        for (uint8 componentId = 1; componentId <= 3; componentId++) {
-            for (uint8 errorCode = 1; errorCode <= 5; errorCode++) {
+        // Reset all component error counts (now includes component 4 for access control)
+        for (uint8 componentId = 1; componentId <= 4; componentId++) {
+            for (uint8 errorCode = 1; errorCode <= 9; errorCode++) {
                 s_componentErrorCounts[componentId][errorCode] = 0;
             }
         }

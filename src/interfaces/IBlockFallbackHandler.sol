@@ -24,11 +24,6 @@ interface IBlockFallbackHandler {
     /// @return Total error count for the component
     function getComponentTotalErrorCount(uint8 componentId) external view returns (uint256);
 
-    /// @notice Checks if a component has experienced any errors
-    /// @param componentId The component to check
-    /// @return Whether the component has experienced any errors
-    function hasComponentErrors(uint8 componentId) external view returns (bool);
-
     /*//////////////////////////////////////////////////////////////
                     COMPONENT-SPECIFIC ERROR QUERIES
     //////////////////////////////////////////////////////////////*/

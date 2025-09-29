@@ -30,7 +30,12 @@ contract FunctionSignatureVerificationTest is Test {
         bytes4 getEntropySelector = bytes4(keccak256("getEntropy(uint256)"));
         console.log("getEntropy selector:", vm.toString(getEntropySelector));
 
-        // Test primary function
+        // Test primary function (requires orchestrator configuration)
+        address testOrchestrator = makeAddr("testOrchestrator");
+        vm.prank(owner);
+        blockEntropy.setOrchestratorOnce(testOrchestrator);
+
+        vm.prank(testOrchestrator);
         try blockEntropy.getEntropy(123) {
             // Should succeed
         } catch {
@@ -67,7 +72,13 @@ contract FunctionSignatureVerificationTest is Test {
         // Record logs
         vm.recordLogs();
 
+        // Configure orchestrator first
+        address testOrchestrator = makeAddr("testOrchestrator");
+        vm.prank(owner);
+        blockEntropy.setOrchestratorOnce(testOrchestrator);
+
         // Trigger events by calling getEntropy
+        vm.prank(testOrchestrator);
         blockEntropy.getEntropy(123);
 
         // Get emitted logs
@@ -130,7 +141,7 @@ contract FunctionSignatureVerificationTest is Test {
         // Test component error functions
         for (uint8 componentId = 1; componentId <= 3; componentId++) {
             assertEq(blockEntropy.getComponentTotalErrorCount(componentId), 0, "Initial component total error count");
-            assertFalse(blockEntropy.hasComponentErrors(componentId), "Initial has component errors");
+            assertEq(blockEntropy.getComponentTotalErrorCount(componentId), 0, "Initial component error count should be zero");
 
             for (uint8 errorCode = 1; errorCode <= 5; errorCode++) {
                 assertEq(blockEntropy.getComponentErrorCount(componentId, errorCode), 0, "Initial component error count");
@@ -155,7 +166,6 @@ contract FunctionSignatureVerificationTest is Test {
         // Test error tracking view functions
         blockEntropy.getComponentErrorCount(1, 1);
         blockEntropy.getComponentTotalErrorCount(1);
-        blockEntropy.hasComponentErrors(1);
         blockEntropy.getBlockHashZeroHashCount();
         blockEntropy.getBlockHashZeroBlockhashFallbackCount();
         blockEntropy.getSegmentExtractionOutOfBoundsCount();
@@ -168,13 +178,20 @@ contract FunctionSignatureVerificationTest is Test {
 
     /// @notice Test exact behavior patterns match original
     function test_BehaviorPatterns() public {
+        // Configure orchestrator for proxy
+        address testOrchestratorProxy = makeAddr("testOrchestratorProxy");
+        vm.prank(owner);
+        proxy.setOrchestratorOnce(testOrchestratorProxy);
+
         // Test segment cycling behavior (via proxy for security)
         uint256 initialSegmentIndex = proxy.getCurrentSegmentIndex();
+        vm.prank(testOrchestratorProxy);
         proxy.getEntropy(123);
         assertEq(proxy.getCurrentSegmentIndex(), (initialSegmentIndex + 1) % 4, "Segment cycling");
 
         // Test transaction counter increment (via proxy for security)
         uint256 initialTxCounter = proxy.getTransactionCounter();
+        vm.prank(testOrchestratorProxy);
         proxy.getEntropy(456);
         assertEq(proxy.getTransactionCounter(), initialTxCounter + 1, "Transaction counter increment");
 
@@ -182,8 +199,15 @@ contract FunctionSignatureVerificationTest is Test {
         uint256 lastProcessedBlock = proxy.getLastProcessedBlock();
         assertEq(lastProcessedBlock, block.number, "Block hash should update to current block");
 
+        // Configure orchestrator for blockEntropy with different address
+        address testOrchestratorMain = makeAddr("testOrchestratorMain");
+        vm.prank(owner);
+        blockEntropy.setOrchestratorOnce(testOrchestratorMain);
+
         // Test that entropy is always non-zero
+        vm.prank(testOrchestratorMain);
         bytes32 entropy1 = blockEntropy.getEntropy(789);
+        vm.prank(testOrchestratorMain);
         bytes32 entropy2 = blockEntropy.getEntropy(789);
         assertTrue(entropy1 != bytes32(0), "Entropy should never be zero");
         assertTrue(entropy2 != bytes32(0), "Entropy should never be zero");

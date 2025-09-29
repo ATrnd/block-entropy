@@ -22,13 +22,17 @@ abstract contract AbstractBlockEntropy is
     IBlockFallbackHandler,
     Ownable
 {
+    /*//////////////////////////////////////////////////////////////
+                            USING STATEMENTS
+    //////////////////////////////////////////////////////////////*/
+
     using BlockValidationLibrary for bytes32;
     using BlockValidationLibrary for bytes8;
     using BlockTimingLibrary for uint256;
     using BlockFallbackLibrary for uint8;
 
     /*//////////////////////////////////////////////////////////////
-                           MUTABLE STATE
+                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Current 256-bit block hash for entropy generation
@@ -48,8 +52,14 @@ abstract contract AbstractBlockEntropy is
     uint256 internal s_transactionCounter;
 
     /// @notice Granular error tracking for fallback monitoring and debugging
-    /// @dev Nested mapping: componentId(1-3) → errorCode(1-5) → count
+    /// @dev Nested mapping: componentId(1-4) → errorCode(1-9) → count
     mapping(uint8 => mapping(uint8 => uint256)) internal s_componentErrorCounts;
+
+    /// @notice Address of the authorized orchestrator contract
+    address private s_orchestratorAddress;
+
+    /// @notice Flag indicating whether orchestrator has been configured
+    bool private s_orchestratorSet;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -65,6 +75,35 @@ abstract contract AbstractBlockEntropy is
 
         // Initialize with current block data
         s_lastProcessedBlock = BlockEntropyConstants.ZERO_UINT; // Force hash generation on first call
+
+        // Initialize access control state
+        s_orchestratorAddress = BlockEntropyConstants.ZERO_ADDRESS;
+        s_orchestratorSet = false;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            ACCESS CONTROL
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Restricts function access to configured orchestrator only
+    modifier onlyOrchestrator() {
+        if (s_orchestratorAddress == BlockEntropyConstants.ZERO_ADDRESS) {
+            _handleAccessControlFailure(
+                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
+                BlockEntropyConstants.FUNC_GET_ENTROPY_ACCESS_CONTROLLED,
+                BlockEntropyConstants.ERROR_ORCHESTRATOR_NOT_CONFIGURED
+            );
+            revert BlockEntropy__OrchestratorNotConfigured();
+        }
+        if (msg.sender != s_orchestratorAddress) {
+            _handleAccessControlFailure(
+                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
+                BlockEntropyConstants.FUNC_GET_ENTROPY_ACCESS_CONTROLLED,
+                BlockEntropyConstants.ERROR_UNAUTHORIZED_ORCHESTRATOR
+            );
+            revert BlockEntropy__UnauthorizedOrchestrator();
+        }
+        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -75,7 +114,7 @@ abstract contract AbstractBlockEntropy is
     /// @dev Updates block hash on block changes, cycles through 4×64-bit segments with timing validation
     /// @param salt Additional entropy source for randomness enhancement
     /// @return 32-byte entropy value derived from block hash segment with temporal and transaction context
-    function getEntropy(uint256 salt) external virtual override returns (bytes32) {
+    function getEntropy(uint256 salt) external virtual override onlyOrchestrator returns (bytes32) {
         // Always increment transaction counter exactly once per call
         uint256 currentTx = _incrementTransactionCounter();
 
@@ -348,26 +387,19 @@ abstract contract AbstractBlockEntropy is
     /// @return Total error count for the component
     function getComponentTotalErrorCount(uint8 componentId) external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
         uint256 total = BlockEntropyConstants.ZERO_UINT;
-        // We avoid loops and use direct access since we know exactly which error codes exist
+        // Sum all error codes for all components (1-5 for original components, 6-9 for access control)
         total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH];
         total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_BLOCKHASH_FALLBACK];
         total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_SEGMENT];
         total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS];
         total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_SHIFT_OVERFLOW];
+        total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ORCHESTRATOR_NOT_CONFIGURED];
+        total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_UNAUTHORIZED_ORCHESTRATOR];
+        total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ORCHESTRATOR_ALREADY_CONFIGURED];
+        total += s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_INVALID_ORCHESTRATOR_ADDRESS];
         return total;
     }
 
-    /// @notice Checks if a component has experienced any errors
-    /// @param componentId The component to check
-    /// @return Whether the component has experienced any errors
-    function hasComponentErrors(uint8 componentId) external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (bool) {
-        // Direct check of each error code without loops
-        return s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH] > BlockEntropyConstants.ZERO_UINT ||
-               s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_BLOCKHASH_FALLBACK] > BlockEntropyConstants.ZERO_UINT ||
-               s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_ZERO_SEGMENT] > BlockEntropyConstants.ZERO_UINT ||
-               s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS] > BlockEntropyConstants.ZERO_UINT ||
-               s_componentErrorCounts[componentId][BlockEntropyConstants.ERROR_SHIFT_OVERFLOW] > BlockEntropyConstants.ZERO_UINT;
-    }
 
     function getBlockHashZeroHashCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
         return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_BLOCK_HASH][BlockEntropyConstants.ERROR_ZERO_BLOCK_HASH];
@@ -391,5 +423,80 @@ abstract contract AbstractBlockEntropy is
 
     function getEntropyGenerationZeroSegmentCount() external view virtual override(IBlockEntropy, IBlockFallbackHandler) returns (uint256) {
         return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ENTROPY_GENERATION][BlockEntropyConstants.ERROR_ZERO_SEGMENT];
+    }
+
+    /// @notice Configures the orchestrator address (one-time only)
+    /// @dev Can only be called once by the contract owner
+    /// @param _orchestrator Address of the orchestrator contract
+    function setOrchestratorOnce(address _orchestrator) external virtual override onlyOwner {
+        if (s_orchestratorSet) {
+            _handleAccessControlFailure(
+                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
+                BlockEntropyConstants.FUNC_SET_ORCHESTRATOR_ONCE,
+                BlockEntropyConstants.ERROR_ORCHESTRATOR_ALREADY_CONFIGURED
+            );
+            revert BlockEntropy__OrchestratorAlreadyConfigured();
+        }
+        if (_orchestrator == BlockEntropyConstants.ZERO_ADDRESS) {
+            _handleAccessControlFailure(
+                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
+                BlockEntropyConstants.FUNC_SET_ORCHESTRATOR_ONCE,
+                BlockEntropyConstants.ERROR_INVALID_ORCHESTRATOR_ADDRESS
+            );
+            revert BlockEntropy__InvalidOrchestratorAddress();
+        }
+
+        s_orchestratorAddress = _orchestrator;
+        s_orchestratorSet = true;
+
+        emit OrchestratorConfigured(_orchestrator);
+    }
+
+    /// @notice Gets the current orchestrator address
+    /// @return Address of the configured orchestrator
+    function getOrchestrator() external view virtual override returns (address) {
+        return s_orchestratorAddress;
+    }
+
+    /// @notice Checks if orchestrator has been configured
+    /// @return True if orchestrator is configured and valid
+    function isOrchestratorConfigured() external view virtual override returns (bool) {
+        return s_orchestratorSet && s_orchestratorAddress != BlockEntropyConstants.ZERO_ADDRESS;
+    }
+
+    /// @notice Gets the count of orchestrator not configured errors in the access control component
+    /// @return The error count
+    function getAccessControlOrchestratorNotConfiguredCount() external view virtual override returns (uint256) {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_ORCHESTRATOR_NOT_CONFIGURED];
+    }
+
+    /// @notice Gets the count of unauthorized orchestrator errors in the access control component
+    /// @return The error count
+    function getAccessControlUnauthorizedOrchestratorCount() external view virtual override returns (uint256) {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_UNAUTHORIZED_ORCHESTRATOR];
+    }
+
+    /// @notice Gets the count of orchestrator already configured errors in the access control component
+    /// @return The error count
+    function getAccessControlOrchestratorAlreadyConfiguredCount() external view virtual override returns (uint256) {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_ORCHESTRATOR_ALREADY_CONFIGURED];
+    }
+
+    /// @notice Gets the count of invalid orchestrator address errors in the access control component
+    /// @return The error count
+    function getAccessControlInvalidOrchestratorAddressCount() external view virtual override returns (uint256) {
+        return s_componentErrorCounts[BlockEntropyConstants.COMPONENT_ACCESS_CONTROL][BlockEntropyConstants.ERROR_INVALID_ORCHESTRATOR_ADDRESS];
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Handles access control failure events with error tracking
+    /// @param componentId The component where the failure occurred
+    /// @param functionName The function where the failure occurred
+    /// @param errorCode The specific error code
+    function _handleAccessControlFailure(uint8 componentId, string memory functionName, uint8 errorCode) internal {
+        _handleFallback(componentId, functionName, errorCode);
     }
 }

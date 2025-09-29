@@ -162,9 +162,9 @@ contract BlockDataEntropyBaseTest is Test {
         // Verify total error count for entropy generation component (cascading errors)
         assertEq(blockDataEntropy.getComponentTotalErrorCount(3), 2, "Total entropy generation errors should be 2 (cascading errors)");
 
-        // Check the hasComponentErrors function
-        assertTrue(blockDataEntropy.hasComponentErrors(3), "Component should have errors");
-        assertFalse(blockDataEntropy.hasComponentErrors(2), "Component should not have errors");
+        // Check error counts instead of boolean function
+        assertGt(blockDataEntropy.getComponentTotalErrorCount(3), 0, "Component should have errors");
+        assertEq(blockDataEntropy.getComponentTotalErrorCount(2), 0, "Component should not have errors");
     }
 
     /// ============================================

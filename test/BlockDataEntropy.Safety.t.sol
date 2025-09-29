@@ -330,10 +330,10 @@ contract BlockDataEntropySafetyTest is Test {
         assertEq(proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 1, "Segment errors should be 1");
         assertEq(proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 1, "Entropy errors should be 1");
 
-        // Verify hasComponentErrors function using proxy
-        assertTrue(proxy.hasComponentErrors(COMPONENT_BLOCK_HASH), "Block hash component should have errors");
-        assertTrue(proxy.hasComponentErrors(COMPONENT_SEGMENT_EXTRACTION), "Segment component should have errors");
-        assertTrue(proxy.hasComponentErrors(COMPONENT_ENTROPY_GENERATION), "Entropy component should have errors");
+        // Verify components have errors using count functions
+        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_BLOCK_HASH), 0, "Block hash component should have errors");
+        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_SEGMENT_EXTRACTION), 0, "Segment component should have errors");
+        assertGt(proxy.getComponentTotalErrorCount(COMPONENT_ENTROPY_GENERATION), 0, "Entropy component should have errors");
     }
 
     function test_ExtremeSegmentIndexValues() public {

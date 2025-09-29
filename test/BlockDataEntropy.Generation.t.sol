@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {BlockDataEntropy} from "../src/implementations/BlockDataEntropy.sol";
 import {BlockDataEntropyTestProxy} from "./mock/BlockDataEntropyTestProxy.sol";
-import {BlockEntropyEvents} from "../src/constants/BlockEntropyEvents.sol";
 
 contract BlockDataEntropyGenerationTest is Test {
     // Use proxy for both entropy generation AND state inspection (same as address-entropy-engine pattern)

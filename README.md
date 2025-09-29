@@ -5,7 +5,9 @@
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.28-363636?style=flat&logo=solidity)
 ![Foundry](https://img.shields.io/badge/Foundry-Latest-000000?style=flat)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
-![Build](https://img.shields.io/badge/Build-Passing-success?style=flat)
+![Tests](https://github.com/ATrnd/block-entropy/workflows/🧪%20Tests%20&%20Quality/badge.svg)
+![Security](https://github.com/ATrnd/block-entropy/workflows/🔒%20Security%20Analysis/badge.svg)
+![Quality](https://github.com/ATrnd/block-entropy/workflows/🎨%20Code%20Quality/badge.svg)
 
 **[⚡] Block-based entropy engine // 256→64bit segmentation // Crash-immune design**
 
@@ -75,11 +77,16 @@ keccak256(
 | **Segment Index OOB** | `index >= 4` | Reset to 0, use fallback | Component ID 2, Error 4 |
 | **Zero Segment Extract** | `segment == 0` | Generate deterministic fallback | Component ID 2, Error 3 |
 | **Shift Overflow** | `shift >= 256` | Use emergency entropy | Component ID 2, Error 5 |
+| **Orchestrator Not Set** | Access control check | Revert with error | Component ID 4, Error 6 |
+| **Unauthorized Caller** | `msg.sender != orchestrator` | Revert with error | Component ID 4, Error 7 |
+| **Zero Address in Access Control** | `_orchestrator == 0` | Revert with error | Component ID 4, Error 9 |
 | **Extraction Failure** | Try-catch on segment ops | Emergency entropy path | Component ID varies |
 
 ### Fallback Architecture
 ```
-getEntropy() → ALWAYS returns bytes32
+getEntropy(salt) → ALWAYS returns bytes32
+    │
+    ├── Access Control: Check orchestrator authorization
     │
     ├── Normal Path: Extract → Combine → Return
     │
@@ -109,12 +116,16 @@ getEntropy() → ALWAYS returns bytes32
 ### Public Functions
 
 #### Core Entropy Generation
-- `getEntropy(uint256 salt) external returns (bytes32)` - Primary entropy generation function with user-provided salt
+- `getEntropy(uint256 salt) external returns (bytes32)` - Primary entropy generation function with user-provided salt (orchestrator-only)
+
+#### Access Control Management
+- `setOrchestratorOnce(address _orchestrator) external` - Configure the authorized orchestrator address (owner-only, one-time)
+- `getOrchestrator() external view returns (address)` - Get the configured orchestrator address
+- `isOrchestratorConfigured() external view returns (bool)` - Check if orchestrator has been configured
 
 #### Error Monitoring & Health Checks
 - `getComponentErrorCount(uint8 componentId, uint8 errorCode) external view returns (uint256)` - Get specific error count for component/error pair
 - `getComponentTotalErrorCount(uint8 componentId) external view returns (uint256)` - Get total error count for a component
-- `hasComponentErrors(uint8 componentId) external view returns (bool)` - Check if component has any errors
 
 #### Component-Specific Error Queries
 - `getBlockHashZeroHashCount() external view returns (uint256)` - Zero hash errors in block hash processing
@@ -123,6 +134,12 @@ getEntropy() → ALWAYS returns bytes32
 - `getSegmentExtractionShiftOverflowCount() external view returns (uint256)` - Shift overflow errors in segment extraction
 - `getEntropyGenerationZeroHashCount() external view returns (uint256)` - Zero hash errors in entropy generation
 - `getEntropyGenerationZeroSegmentCount() external view returns (uint256)` - Zero segment errors in entropy generation
+
+#### Access Control Error Queries
+- `getAccessControlOrchestratorNotConfiguredCount() external view returns (uint256)` - Orchestrator not configured errors
+- `getAccessControlUnauthorizedOrchestratorCount() external view returns (uint256)` - Unauthorized orchestrator errors
+- `getAccessControlOrchestratorAlreadyConfiguredCount() external view returns (uint256)` - Orchestrator already configured errors
+- `getAccessControlInvalidOrchestratorAddressCount() external view returns (uint256)` - Invalid orchestrator address errors
 
 #### Ownership (Inherited from OpenZeppelin)
 - `owner() external view returns (address)` - Get current contract owner
@@ -147,6 +164,7 @@ getEntropy() → ALWAYS returns bytes32
 
 #### Fallback & Error Handling
 - `_handleFallback(uint8 componentId, string memory functionName, uint8 errorCode) internal` - Handle fallback events with tracking
+- `_handleAccessControlFailure(uint8 componentId, string memory functionName, uint8 errorCode) internal` - Handle access control failures
 - `_incrementComponentErrorCount(uint8 componentId, uint8 errorCode) internal returns (uint256)` - Increment error counters
 - `_generateEmergencyEntropy(uint256 salt, uint256 txCounter) internal view returns (bytes32)` - Generate emergency entropy when normal flow fails
 - `_getComponentName(uint8 componentId) internal pure returns (string memory)` - Convert component ID to name string

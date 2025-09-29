@@ -46,6 +46,9 @@ library BlockEntropyConstants {
     /// @notice Zero bytes8 constant
     bytes8 internal constant ZERO_BYTES8 = bytes8(0);
 
+    /// @notice Zero address constant for access control validation
+    address internal constant ZERO_ADDRESS = address(0);
+
     /*//////////////////////////////////////////////////////////////
                             BLOCK PROCESSING CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -62,6 +65,7 @@ library BlockEntropyConstants {
     uint8 internal constant COMPONENT_BLOCK_HASH = 1;
     uint8 internal constant COMPONENT_SEGMENT_EXTRACTION = 2;
     uint8 internal constant COMPONENT_ENTROPY_GENERATION = 3;
+    uint8 internal constant COMPONENT_ACCESS_CONTROL = 4;
 
     /*//////////////////////////////////////////////////////////////
                             INCREMENT CONSTANTS
@@ -80,6 +84,10 @@ library BlockEntropyConstants {
     uint8 internal constant ERROR_ZERO_SEGMENT = 3;
     uint8 internal constant ERROR_SEGMENT_INDEX_OUT_OF_BOUNDS = 4;
     uint8 internal constant ERROR_SHIFT_OVERFLOW = 5;
+    uint8 internal constant ERROR_ORCHESTRATOR_NOT_CONFIGURED = 6;
+    uint8 internal constant ERROR_UNAUTHORIZED_ORCHESTRATOR = 7;
+    uint8 internal constant ERROR_ORCHESTRATOR_ALREADY_CONFIGURED = 8;
+    uint8 internal constant ERROR_INVALID_ORCHESTRATOR_ADDRESS = 9;
 
     /*//////////////////////////////////////////////////////////////
                             FUNCTION NAME CONSTANTS
@@ -89,6 +97,8 @@ library BlockEntropyConstants {
     string internal constant FUNC_GET_ENTROPY = "getEntropy";
     string internal constant FUNC_UPDATE_BLOCK_HASH = "updateBlockHash";
     string internal constant FUNC_EXTRACT_SEGMENT = "extractSegment";
+    string internal constant FUNC_SET_ORCHESTRATOR_ONCE = "setOrchestratorOnce";
+    string internal constant FUNC_GET_ENTROPY_ACCESS_CONTROLLED = "getEntropy";
 
     /*//////////////////////////////////////////////////////////////
                             COMPONENT NAME CONSTANTS
@@ -98,5 +108,6 @@ library BlockEntropyConstants {
     string internal constant COMPONENT_NAME_BLOCK_HASH = "BlockHash";
     string internal constant COMPONENT_NAME_SEGMENT_EXTRACTION = "SegmentExtraction";
     string internal constant COMPONENT_NAME_ENTROPY_GENERATION = "EntropyGeneration";
+    string internal constant COMPONENT_NAME_ACCESS_CONTROL = "AccessControl";
     string internal constant COMPONENT_NAME_UNKNOWN = "Unknown";
 }

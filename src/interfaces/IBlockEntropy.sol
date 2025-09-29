@@ -10,8 +10,28 @@ pragma solidity ^0.8.28;
 interface IBlockEntropy {
 
     /*//////////////////////////////////////////////////////////////
-                          BLOCK PROCESSING EVENTS
+                                 ERRORS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when trying to call getEntropy before orchestrator is configured
+    error BlockEntropy__OrchestratorNotConfigured();
+
+    /// @notice Thrown when unauthorized address attempts to call getEntropy
+    error BlockEntropy__UnauthorizedOrchestrator();
+
+    /// @notice Thrown when trying to configure orchestrator more than once
+    error BlockEntropy__OrchestratorAlreadyConfigured();
+
+    /// @notice Thrown when trying to set zero address as orchestrator
+    error BlockEntropy__InvalidOrchestratorAddress();
+
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when orchestrator is successfully configured
+    /// @param orchestrator Address of the newly configured orchestrator
+    event OrchestratorConfigured(address indexed orchestrator);
 
     /// @notice Emitted when block hash is generated from comprehensive block properties
     /// @param blockNumber Block that triggered hash generation due to block.number change
@@ -20,10 +40,6 @@ interface IBlockEntropy {
         uint256 indexed blockNumber,
         bytes32 hashValue
     );
-
-    /*//////////////////////////////////////////////////////////////
-                         ENTROPY GENERATION EVENTS
-    //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when entropy generation completes successfully
     /// @param requester Address that requested entropy generation
@@ -35,22 +51,18 @@ interface IBlockEntropy {
         uint256 blockNumber
     );
 
-    /*//////////////////////////////////////////////////////////////
-                           SAFETY & FALLBACK EVENTS
-    //////////////////////////////////////////////////////////////*/
-
     /// @notice Emitted when fallback mechanism is triggered due to validation failure
     /// @param component_hash Keccak256 hash of component name for efficient event filtering
     /// @param function_hash Keccak256 hash of function name for precise error location
-    /// @param error_code Numeric error identifier for categorization (1-5 range)
+    /// @param error_code Numeric error identifier for categorization (1-9 range)
     /// @param component Human-readable component name for debugging
     /// @param function_name Human-readable function name for debugging
     event SafetyFallbackTriggered(
-        bytes32 indexed component_hash,  // Hash of component for filtering
-        bytes32 indexed function_hash,   // Hash of function name for filtering
-        uint8 indexed error_code,        // Error code for severity filtering
-        string component,                // Full component name (not indexed)
-        string function_name             // Full function name (not indexed)
+        bytes32 indexed component_hash,
+        bytes32 indexed function_hash,
+        uint8 indexed error_code,
+        string component,
+        string function_name
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -62,6 +74,23 @@ interface IBlockEntropy {
     /// @param salt Additional entropy source for randomness enhancement
     /// @return 32-byte entropy value derived from block hash segment with temporal and transaction context
     function getEntropy(uint256 salt) external returns (bytes32);
+
+    /*//////////////////////////////////////////////////////////////
+                        ACCESS CONTROL
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Configures the orchestrator address (one-time only)
+    /// @dev Can only be called once by the contract owner
+    /// @param _orchestrator Address of the orchestrator contract
+    function setOrchestratorOnce(address _orchestrator) external;
+
+    /// @notice Gets the current orchestrator address
+    /// @return Address of the configured orchestrator
+    function getOrchestrator() external view returns (address);
+
+    /// @notice Checks if orchestrator has been configured
+    /// @return True if orchestrator is configured and valid
+    function isOrchestratorConfigured() external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
                         FALLBACK MONITORING
@@ -77,11 +106,6 @@ interface IBlockEntropy {
     /// @param componentId The component to check
     /// @return Total error count for the component
     function getComponentTotalErrorCount(uint8 componentId) external view returns (uint256);
-
-    /// @notice Checks if a component has experienced any errors
-    /// @param componentId The component to check
-    /// @return Whether the component has experienced any errors
-    function hasComponentErrors(uint8 componentId) external view returns (bool);
 
     /// @notice Gets the count of zero block hash errors in the block hash component
     /// @return The error count
@@ -107,5 +131,20 @@ interface IBlockEntropy {
     /// @return The error count
     function getEntropyGenerationZeroSegmentCount() external view returns (uint256);
 
-    // State inspection functions moved to IBlockDataEntropyTestProxy for security
+    /// @notice Gets the count of orchestrator not configured errors in the access control component
+    /// @return The error count
+    function getAccessControlOrchestratorNotConfiguredCount() external view returns (uint256);
+
+    /// @notice Gets the count of unauthorized orchestrator errors in the access control component
+    /// @return The error count
+    function getAccessControlUnauthorizedOrchestratorCount() external view returns (uint256);
+
+    /// @notice Gets the count of orchestrator already configured errors in the access control component
+    /// @return The error count
+    function getAccessControlOrchestratorAlreadyConfiguredCount() external view returns (uint256);
+
+    /// @notice Gets the count of invalid orchestrator address errors in the access control component
+    /// @return The error count
+    function getAccessControlInvalidOrchestratorAddressCount() external view returns (uint256);
+
 }
