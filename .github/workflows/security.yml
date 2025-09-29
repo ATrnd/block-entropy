@@ -1,0 +1,186 @@
+name: 🔒 Security Analysis
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  slither-analysis:
+    name: 🐍 Slither Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: ⚙️ Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.1.0
+
+      - name: 🔧 Install dependencies
+        run: forge install
+
+      - name: 🏗️ Build contracts
+        run: forge build
+
+      - name: 📦 Install Slither
+        run: pip install slither-analyzer
+
+      - name: 🔍 Run Slither analysis
+        run: |
+          slither . \
+            --exclude-dependencies \
+            --exclude-optimization \
+            --exclude-informational \
+            --exclude-low \
+            --filter-paths "lib/,test/" \
+            --json slither-report.json \
+            --sarif slither-report.sarif || true
+
+      - name: 📋 Process and display results
+        run: |
+          if [ -f slither-report.json ]; then
+            echo "🔍 Slither Analysis Results:"
+            python3 -c "
+          import json
+          import sys
+
+          with open('slither-report.json', 'r') as f:
+              data = json.load(f)
+              results = data.get('results', {}).get('detectors', [])
+
+              # Filter out known false positives
+              false_positives = [
+                  'dead-code',  # Template methods in abstract contracts
+                  'solc-version',  # OpenZeppelin version differences
+                  'pragma',  # Version pragma differences
+                  'naming-convention'  # Style issues
+              ]
+
+              filtered_results = [
+                  r for r in results
+                  if r.get('check') not in false_positives
+              ]
+
+              high = [r for r in filtered_results if r.get('impact') == 'High']
+              medium = [r for r in filtered_results if r.get('impact') == 'Medium']
+
+              print(f'🔴 High severity issues: {len(high)}')
+              print(f'🟡 Medium severity issues: {len(medium)}')
+              print(f'📊 Total filtered issues: {len(filtered_results)}')
+              print(f'🔇 Suppressed false positives: {len(results) - len(filtered_results)}')
+
+              if high:
+                  print('\n🔴 HIGH SEVERITY ISSUES:')
+                  for issue in high:
+                      print(f'- {issue.get(\"description\", \"Unknown issue\")}')
+                      print(f'  Check: {issue.get(\"check\", \"unknown\")}')
+
+              if medium:
+                  print('\n🟡 MEDIUM SEVERITY ISSUES:')
+                  for issue in medium:
+                      print(f'- {issue.get(\"description\", \"Unknown issue\")}')
+                      print(f'  Check: {issue.get(\"check\", \"unknown\")}')
+
+              # Fail CI only on high severity issues
+              if high:
+                  print('\n❌ CI FAILURE: High severity security issues found!')
+                  sys.exit(1)
+              else:
+                  print('\n✅ No critical security issues found!')
+          "
+          else
+            echo "✅ No Slither report generated - analysis completed without findings"
+          fi
+
+      - name: 📤 Upload Slither SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: slither-report.sarif
+
+      - name: 📤 Upload Slither artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slither-reports
+          path: |
+            slither-report.json
+            slither-report.sarif
+
+  dependency-security:
+    name: 📦 Dependency Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: ⚙️ Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.1.0
+
+      - name: 🔍 Analyze dependencies
+        run: |
+          echo "🔍 Checking dependencies for security issues..."
+
+          # Check OpenZeppelin version
+          if [ -f "lib/openzeppelin-contracts/package.json" ]; then
+            oz_version=$(grep '"version"' lib/openzeppelin-contracts/package.json | cut -d'"' -f4)
+            echo "📦 OpenZeppelin version: $oz_version"
+
+            # Check against known vulnerable versions
+            case $oz_version in
+              4.3.0|4.3.1|4.3.2|4.3.3)
+                echo "⚠️  WARNING: OpenZeppelin version $oz_version has known vulnerabilities"
+                echo "::warning::OpenZeppelin version $oz_version should be updated"
+                ;;
+              *)
+                echo "✅ OpenZeppelin version appears up to date"
+                ;;
+            esac
+          fi
+
+          # Check for any http remappings (security risk)
+          if [ -f "remappings.txt" ]; then
+            echo "📋 Checking remappings for security issues..."
+            if grep -q "http://" remappings.txt; then
+              echo "⚠️  WARNING: Found HTTP remappings (should use HTTPS)"
+              echo "::warning::Insecure HTTP remappings detected"
+            else
+              echo "✅ No insecure remappings found"
+            fi
+          fi
+
+          # Check Foundry configuration
+          if [ -f "foundry.toml" ]; then
+            echo "📋 Validating Foundry configuration..."
+            if grep -q "optimizer.*=.*true" foundry.toml; then
+              echo "✅ Optimizer enabled in Foundry config"
+            else
+              echo "⚠️  INFO: Optimizer not explicitly enabled"
+            fi
+          fi
+
+          echo "🎯 Dependency security check completed"

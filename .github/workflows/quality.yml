@@ -1,0 +1,126 @@
+name: 🎨 Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  formatting:
+    name: 🎨 Code Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.1.0
+
+      - name: 🎨 Check Solidity formatting
+        run: |
+          echo "🎨 Checking Solidity code formatting..."
+          if ! forge fmt --check; then
+            echo ""
+            echo "❌ Code formatting issues found!"
+            echo "💡 Run 'forge fmt' to fix formatting"
+            echo ""
+            echo "Files that need formatting:"
+            forge fmt --check 2>&1 | grep -E "\.(sol):" || true
+            exit 1
+          else
+            echo "✅ All Solidity files are properly formatted"
+          fi
+
+  documentation:
+    name: 📚 Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: ⚙️ Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.1.0
+
+      - name: 🔧 Install dependencies
+        run: forge install
+
+      - name: 📚 Generate documentation
+        run: |
+          echo "📚 Generating contract documentation..."
+          forge doc --build
+
+      - name: 📋 Check documentation coverage
+        run: |
+          echo "📋 Checking NatSpec documentation coverage..."
+
+          # Count functions and documented functions
+          total_functions=$(find src -name "*.sol" -exec grep -h "function " {} \; | wc -l)
+          documented_functions=$(find src -name "*.sol" -exec grep -B1 "function " {} \; | grep -c "@notice\|@dev\|///" || echo "0")
+
+          if [ "$total_functions" -gt 0 ]; then
+            coverage=$((documented_functions * 100 / total_functions))
+            echo "📊 Documentation coverage: $coverage% ($documented_functions/$total_functions functions)"
+
+            if [ "$coverage" -lt 80 ]; then
+              echo "⚠️  Documentation coverage below 80%"
+            else
+              echo "✅ Good documentation coverage"
+            fi
+          else
+            echo "📊 No functions found to analyze"
+          fi
+
+  build-check:
+    name: 🔨 Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: ⚙️ Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.1.0
+
+      - name: 🔧 Install dependencies
+        run: forge install
+
+      - name: 🏗️ Build with size check
+        run: |
+          echo "🏗️ Building contracts..."
+          forge build --sizes | tee build-output.txt
+
+          echo ""
+          echo "📏 Contract size analysis:"
+
+          # Check for contracts approaching size limit
+          if grep -E "2[0-3]\." build-output.txt; then
+            echo "⚠️  Some contracts are approaching the 24KB size limit"
+          fi
+
+          # Check for contracts exceeding size limit
+          if grep -E "2[4-9]\.|[3-9][0-9]\." build-output.txt; then
+            echo "❌ Some contracts exceed the 24KB size limit!"
+            exit 1
+          else
+            echo "✅ All contracts are within size limits"
+          fi
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build-output.txt
