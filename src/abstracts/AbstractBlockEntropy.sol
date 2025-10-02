@@ -84,19 +84,11 @@ abstract contract AbstractBlockEntropy is IBlockEntropy, IBlockFallbackHandler, 
     /// @notice Restricts function access to configured orchestrator only
     modifier onlyOrchestrator() {
         if (s_orchestratorAddress == BlockEntropyConstants.ZERO_ADDRESS) {
-            _handleAccessControlFailure(
-                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
-                BlockEntropyConstants.FUNC_GET_ENTROPY_ACCESS_CONTROLLED,
-                BlockEntropyConstants.ERROR_ORCHESTRATOR_NOT_CONFIGURED
-            );
+            // NOTE: Cannot track errors here - revert rolls back state changes
             revert BlockEntropy__OrchestratorNotConfigured();
         }
         if (msg.sender != s_orchestratorAddress) {
-            _handleAccessControlFailure(
-                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
-                BlockEntropyConstants.FUNC_GET_ENTROPY_ACCESS_CONTROLLED,
-                BlockEntropyConstants.ERROR_UNAUTHORIZED_ORCHESTRATOR
-            );
+            // NOTE: Cannot track errors here - revert rolls back state changes
             revert BlockEntropy__UnauthorizedOrchestrator();
         }
         _;
@@ -466,19 +458,11 @@ abstract contract AbstractBlockEntropy is IBlockEntropy, IBlockFallbackHandler, 
     /// @param _orchestrator Address of the orchestrator contract
     function setOrchestratorOnce(address _orchestrator) external virtual override onlyOwner {
         if (s_orchestratorSet) {
-            _handleAccessControlFailure(
-                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
-                BlockEntropyConstants.FUNC_SET_ORCHESTRATOR_ONCE,
-                BlockEntropyConstants.ERROR_ORCHESTRATOR_ALREADY_CONFIGURED
-            );
+            // NOTE: Cannot track errors here - revert rolls back state changes
             revert BlockEntropy__OrchestratorAlreadyConfigured();
         }
         if (_orchestrator == BlockEntropyConstants.ZERO_ADDRESS) {
-            _handleAccessControlFailure(
-                BlockEntropyConstants.COMPONENT_ACCESS_CONTROL,
-                BlockEntropyConstants.FUNC_SET_ORCHESTRATOR_ONCE,
-                BlockEntropyConstants.ERROR_INVALID_ORCHESTRATOR_ADDRESS
-            );
+            // NOTE: Cannot track errors here - revert rolls back state changes
             revert BlockEntropy__InvalidOrchestratorAddress();
         }
 
